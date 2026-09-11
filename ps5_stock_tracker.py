@@ -1,3 +1,4 @@
+```python
 import os
 import json
 import requests
@@ -24,8 +25,8 @@ JB_HIFI_URL = (
 
 JB_HIFI_STORE = "Wairau Park"
 
-# Product SKU shown by JB Hi-Fi
-JB_HIFI_SKU = "446000"
+# Search term used in JB Hi-Fi's store finder
+STORE_SEARCH = "Wairau Park"
 
 
 # ============================================================
@@ -48,17 +49,14 @@ PRODUCTS = {
 
 
 # ============================================================
-# HEADERS
+# BROWSER SETTINGS
 # ============================================================
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/131.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language": "en-NZ,en;q=0.9",
-}
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/131.0.0.0 Safari/537.36"
+)
 
 
 # ============================================================
@@ -72,7 +70,9 @@ def load_state():
     try:
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    except Exception:
+
+    except Exception as e:
+        print(f"Could not load state: {e}")
         return {}
 
 
@@ -86,6 +86,7 @@ def save_state(state):
 # ============================================================
 
 def send_email(subject, body):
+
     if not RESEND_API_KEY:
         print("ERROR: RESEND_API_KEY is not configured.")
         return False
@@ -105,6 +106,7 @@ def send_email(subject, body):
     }
 
     try:
+
         response = requests.post(
             url,
             headers=headers,
@@ -118,6 +120,7 @@ def send_email(subject, body):
         return response.ok
 
     except Exception as e:
+
         print("Email error:", e)
         return False
 
@@ -127,18 +130,17 @@ def send_email(subject, body):
 # ============================================================
 
 def send_test_email():
+
     subject = "PS5 Stock Tracker - Test Email"
 
     body = """Your PS5 stock tracker is working.
 
 This is a test email from GitHub Actions.
 
-The tracker is configured to check:
-
-JB Hi-Fi
+JB Hi-Fi store:
 Wairau Park
 
-It will also check the other retailers configured in the script.
+The tracker will check the store automatically.
 
 Time:
 """
@@ -151,16 +153,75 @@ Time:
 
 
 # ============================================================
-# JB HI-FI
+# HELPER: SAFE CLICK
+# ============================================================
+
+def click_text(page, texts, timeout=3000):
+
+    for text in texts:
+
+        try:
+
+            locator = page.get_by_text(
+                text,
+                exact=True
+            ).first
+
+            if locator.is_visible(timeout=timeout):
+
+                print(f"Clicking: {text}")
+
+                locator.click()
+
+                return True
+
+        except Exception:
+            pass
+
+    return False
+
+
+# ============================================================
+# HELPER: FIND VISIBLE TEXT
+# ============================================================
+
+def text_exists(page, texts):
+
+    for text in texts:
+
+        try:
+
+            locator = page.get_by_text(
+                text,
+                exact=False
+            ).first
+
+            if locator.is_visible(timeout=1000):
+                return True
+
+        except Exception:
+            pass
+
+    return False
+
+
+# ============================================================
+# HELPER: GET PAGE TEXT
+# ============================================================
+
+def get_page_text(page):
+
+    try:
+        return page.locator("body").inner_text().lower()
+    except Exception:
+        return ""
+
+
+# ============================================================
+# JB HI-FI STORE CHECK
 # ============================================================
 
 def check_jbhifi_wairau():
-    """
-    Uses a real Chromium browser to interact with JB Hi-Fi's
-    store availability system.
-
-    The important result is specifically Wairau Park.
-    """
 
     print()
     print("=" * 60)
@@ -168,6 +229,7 @@ def check_jbhifi_wairau():
     print("=" * 60)
 
     result = {
+        "status": "unknown",
         "stock": False,
         "reason": "",
     }
@@ -184,7 +246,7 @@ def check_jbhifi_wairau():
         )
 
         context = browser.new_context(
-            user_agent=HEADERS["User-Agent"],
+            user_agent=USER_AGENT,
             locale="en-NZ",
             timezone_id="Pacific/Auckland",
             viewport={
@@ -196,6 +258,11 @@ def check_jbhifi_wairau():
         page = context.new_page()
 
         try:
+
+            # ==================================================
+            # STEP 1 — OPEN PRODUCT PAGE
+            # ==================================================
+
             print("Opening JB Hi-Fi product page...")
 
             page.goto(
@@ -204,253 +271,537 @@ def check_jbhifi_wairau():
                 timeout=60000,
             )
 
-            # Give the site's JavaScript time to load.
             page.wait_for_timeout(5000)
 
-            print("Page loaded.")
+            print("Product page loaded.")
 
-            # ------------------------------------------------
-            # First look for the store availability control.
-            # ------------------------------------------------
+            # ==================================================
+            # STEP 2 — ADD TO CART
+            # ==================================================
 
-            availability_found = False
+            print()
+            print("Looking for Add to cart...")
 
-            selectors = [
-                "text=Check store availability",
-                "text=Check availability",
-                "text=store availability",
+            add_to_cart_found = False
+
+            add_to_cart_selectors = [
+                "button:has-text('Add to cart')",
+                "button:has-text('Add to Cart')",
+                "text=Add to cart",
+                "text=Add to Cart",
             ]
 
-            for selector in selectors:
+            for selector in add_to_cart_selectors:
+
                 try:
-                    locator = page.locator(selector).first
+
+                    locator = page.locator(
+                        selector
+                    ).first
 
                     if locator.is_visible(timeout=3000):
+
                         print(
-                            f"Found availability control: {selector}"
+                            f"Found Add to cart using: "
+                            f"{selector}"
                         )
 
                         locator.click()
-                        availability_found = True
+
+                        add_to_cart_found = True
+
                         break
 
                 except Exception:
                     pass
 
-            # ------------------------------------------------
-            # Sometimes the availability section is already
-            # open, so this is not necessarily an error.
-            # ------------------------------------------------
+            if not add_to_cart_found:
+
+                result["reason"] = (
+                    "Could not find Add to cart button"
+                )
+
+                print(result["reason"])
+
+                page.screenshot(
+                    path="jbhifi_debug.png",
+                    full_page=True,
+                )
+
+                return result
+
+            print("Added product to cart.")
+
+            page.wait_for_timeout(5000)
+
+            # ==================================================
+            # STEP 3 — REVIEW CART
+            # ==================================================
+
+            print()
+            print("Looking for Review cart...")
+
+            review_cart_found = False
+
+            review_selectors = [
+                "text=Review cart",
+                "text=Review Cart",
+                "text=View cart",
+                "text=View Cart",
+                "a[href*='/cart']",
+                "a[href*='cart']",
+            ]
+
+            for selector in review_selectors:
+
+                try:
+
+                    locator = page.locator(
+                        selector
+                    ).first
+
+                    if locator.is_visible(timeout=3000):
+
+                        print(
+                            f"Found cart link using: "
+                            f"{selector}"
+                        )
+
+                        locator.click()
+
+                        review_cart_found = True
+
+                        break
+
+                except Exception:
+                    pass
+
+            # If clicking did not work, directly go to cart.
+            if not review_cart_found:
+
+                print(
+                    "Review cart button not found."
+                )
+
+                print(
+                    "Opening /cart directly..."
+                )
+
+                try:
+
+                    page.goto(
+                        "https://www.jbhifi.co.nz/cart",
+                        wait_until="domcontentloaded",
+                        timeout=60000,
+                    )
+
+                    review_cart_found = True
+
+                except Exception as e:
+
+                    print(
+                        f"Could not open cart: {e}"
+                    )
+
+            page.wait_for_timeout(5000)
+
+            print("Cart page loaded.")
+
+            # ==================================================
+            # STEP 4 — CHECK STORE AVAILABILITY
+            # ==================================================
+
+            print()
+            print(
+                "Looking for Check store availability..."
+            )
+
+            availability_found = False
+
+            availability_selectors = [
+                "text=Check store availability",
+                "text=Check Store Availability",
+                "text=Check availability",
+                "text=Check Availability",
+                "button:has-text('Check store availability')",
+                "button:has-text('Check availability')",
+            ]
+
+            for selector in availability_selectors:
+
+                try:
+
+                    locator = page.locator(
+                        selector
+                    ).first
+
+                    if locator.is_visible(timeout=3000):
+
+                        print(
+                            f"Found availability control: "
+                            f"{selector}"
+                        )
+
+                        locator.click()
+
+                        availability_found = True
+
+                        break
+
+                except Exception:
+                    pass
+
+            if not availability_found:
+
+                # Sometimes the availability section
+                # appears automatically.
+
+                current_text = get_page_text(page)
+
+                if (
+                    "store availability"
+                    in current_text
+                    or
+                    "postcode or suburb"
+                    in current_text
+                ):
+
+                    print(
+                        "Store availability section "
+                        "already visible."
+                    )
+
+                    availability_found = True
+
+            if not availability_found:
+
+                result["reason"] = (
+                    "Could not find Check store availability"
+                )
+
+                print(result["reason"])
+
+                page.screenshot(
+                    path="jbhifi_debug.png",
+                    full_page=True,
+                )
+
+                return result
 
             page.wait_for_timeout(3000)
 
-            body_text = page.locator("body").inner_text()
+            # ==================================================
+            # STEP 5 — ENTER STORE SEARCH
+            # ==================================================
 
             print()
-            print("Searching for Wairau Park...")
-
-            # ------------------------------------------------
-            # If Wairau is already visible, use it.
-            # ------------------------------------------------
-
-            if JB_HIFI_STORE.lower() in body_text.lower():
-
-                print("Wairau Park already visible.")
-
-            else:
-
-                # ------------------------------------------------
-                # Try the postcode/suburb search box.
-                # ------------------------------------------------
-
-                search_boxes = [
-                    'input[placeholder*="postcode"]',
-                    'input[placeholder*="suburb"]',
-                    'input[placeholder*="postcode or suburb"]',
-                    'input[type="search"]',
-                ]
-
-                search_box = None
-
-                for selector in search_boxes:
-                    try:
-                        candidate = page.locator(selector).first
-
-                        if candidate.is_visible(timeout=2000):
-                            search_box = candidate
-                            print(
-                                f"Found store search box: {selector}"
-                            )
-                            break
-
-                    except Exception:
-                        pass
-
-                if search_box:
-
-                    search_box.fill(JB_HIFI_STORE)
-
-                    page.wait_for_timeout(3000)
-
-                    # Try pressing Enter as well.
-                    try:
-                        search_box.press("Enter")
-                    except Exception:
-                        pass
-
-                    page.wait_for_timeout(3000)
-
-            # ------------------------------------------------
-            # Get all currently visible page text.
-            # ------------------------------------------------
-
-            body_text = page.locator("body").inner_text()
-
-            print()
-            print("Checking Wairau Park availability...")
-
-            # Print the relevant portion if possible.
-            lines = [
-                line.strip()
-                for line in body_text.splitlines()
-                if line.strip()
-            ]
-
-            for i, line in enumerate(lines):
-
-                if "wairau" in line.lower():
-
-                    start = max(0, i - 2)
-                    end = min(len(lines), i + 8)
-
-                    print()
-                    print("--- Wairau section ---")
-
-                    for nearby_line in lines[start:end]:
-                        print(nearby_line)
-
-                    print("--- End Wairau section ---")
-                    print()
-
-            # ------------------------------------------------
-            # IMPORTANT:
-            #
-            # "Sorry, it's unavailable." = OUT OF STOCK
-            #
-            # "1 hour Click & Collect"
-            # "In-store"
-            # etc. = IN STOCK
-            # ------------------------------------------------
-
-            lower_text = body_text.lower()
-
-            # Find Wairau's section specifically.
-            wairau_index = lower_text.find(
-                JB_HIFI_STORE.lower()
+            print(
+                "Looking for postcode/suburb search..."
             )
 
-            if wairau_index == -1:
+            search_box = None
 
-                result["stock"] = False
+            search_selectors = [
+                'input[placeholder*="postcode"]',
+                'input[placeholder*="Postcode"]',
+                'input[placeholder*="suburb"]',
+                'input[placeholder*="Suburb"]',
+                'input[placeholder*="postcode or suburb"]',
+                'input[placeholder*="postcode or suburb"]',
+                'input[type="search"]',
+            ]
+
+            for selector in search_selectors:
+
+                try:
+
+                    locator = page.locator(
+                        selector
+                    ).first
+
+                    if locator.is_visible(timeout=2000):
+
+                        search_box = locator
+
+                        print(
+                            f"Found store search box: "
+                            f"{selector}"
+                        )
+
+                        break
+
+                except Exception:
+                    pass
+
+            if not search_box:
+
                 result["reason"] = (
-                    "Could not find Wairau Park on the page"
+                    "Could not find store search box"
                 )
 
-                print("Wairau Park was NOT found.")
+                print(result["reason"])
 
-            else:
-
-                # Only inspect text around Wairau.
-                wairau_section = lower_text[
-                    wairau_index:
-                    wairau_index + 1200
-                ]
-
-                # OUT OF STOCK
-                unavailable_phrases = [
-                    "sorry, it's unavailable",
-                    "sorry, it’s unavailable",
-                    "unavailable",
-                    "not available",
-                ]
-
-                # IN STOCK
-                available_phrases = [
-                    "1 hour click & collect",
-                    "click & collect",
-                    "in-store",
-                    "in store",
-                ]
-
-                found_unavailable = any(
-                    phrase in wairau_section
-                    for phrase in unavailable_phrases
+                page.screenshot(
+                    path="jbhifi_debug.png",
+                    full_page=True,
                 )
 
-                found_available = any(
-                    phrase in wairau_section
-                    for phrase in available_phrases
+                return result
+
+            # ==================================================
+            # STEP 6 — SEARCH FOR WAIRAU PARK
+            # ==================================================
+
+            print(
+                f"Searching for: {STORE_SEARCH}"
+            )
+
+            search_box.fill(STORE_SEARCH)
+
+            page.wait_for_timeout(2000)
+
+            # Try Enter.
+            try:
+                search_box.press("Enter")
+            except Exception:
+                pass
+
+            page.wait_for_timeout(4000)
+
+            # ==================================================
+            # STEP 7 — SELECT WAIRAU PARK
+            # ==================================================
+
+            print()
+            print(
+                "Looking for Wairau Park result..."
+            )
+
+            wairau_found = False
+
+            wairau_selectors = [
+                "text=Wairau Park",
+                "text=Wairau",
+                "[aria-label*='Wairau Park']",
+                "[aria-label*='Wairau']",
+            ]
+
+            for selector in wairau_selectors:
+
+                try:
+
+                    locator = page.locator(
+                        selector
+                    ).first
+
+                    if locator.is_visible(timeout=3000):
+
+                        print(
+                            f"Found Wairau using: "
+                            f"{selector}"
+                        )
+
+                        locator.click()
+
+                        wairau_found = True
+
+                        break
+
+                except Exception:
+                    pass
+
+            if not wairau_found:
+
+                # It may already be selected and displayed.
+                current_text = get_page_text(page)
+
+                if "wairau park" in current_text:
+
+                    print(
+                        "Wairau Park is already displayed."
+                    )
+
+                    wairau_found = True
+
+            if not wairau_found:
+
+                result["reason"] = (
+                    "Wairau Park was not found after "
+                    "store search"
                 )
 
-                if found_unavailable and not found_available:
+                print(result["reason"])
 
+                page.screenshot(
+                    path="jbhifi_debug.png",
+                    full_page=True,
+                )
+
+                return result
+
+            page.wait_for_timeout(3000)
+
+            # ==================================================
+            # STEP 8 — READ STORE AVAILABILITY
+            # ==================================================
+
+            print()
+            print(
+                "Checking Wairau Park availability..."
+            )
+
+            body_text = get_page_text(page)
+
+            # Find the Wairau section.
+            wairau_position = body_text.find(
+                "wairau park"
+            )
+
+            if wairau_position == -1:
+
+                result["reason"] = (
+                    "Wairau Park disappeared before "
+                    "availability could be read"
+                )
+
+                print(result["reason"])
+
+                page.screenshot(
+                    path="jbhifi_debug.png",
+                    full_page=True,
+                )
+
+                return result
+
+            # Only inspect the text near Wairau Park.
+            wairau_section = body_text[
+                wairau_position:
+                wairau_position + 1500
+            ]
+
+            print()
+            print("--- WAIRAU PARK SECTION ---")
+            print(
+                wairau_section[:1500]
+            )
+            print("--- END WAIRAU SECTION ---")
+            print()
+
+            # ==================================================
+            # OUT OF STOCK
+            # ==================================================
+
+            unavailable_phrases = [
+                "sorry, it's unavailable",
+                "sorry, it’s unavailable",
+                "currently unavailable",
+                "not available",
+                "unavailable",
+            ]
+
+            for phrase in unavailable_phrases:
+
+                if phrase in wairau_section:
+
+                    result["status"] = "out_of_stock"
                     result["stock"] = False
                     result["reason"] = (
-                        "Wairau Park says unavailable"
+                        "Wairau Park explicitly says "
+                        "unavailable"
                     )
 
                     print(
-                        "RESULT: Wairau Park is OUT OF STOCK"
+                        "RESULT: OUT OF STOCK"
                     )
 
-                elif found_available:
+                    page.screenshot(
+                        path="jbhifi_debug.png",
+                        full_page=True,
+                    )
 
+                    return result
+
+            # ==================================================
+            # IN STOCK
+            # ==================================================
+
+            available_phrases = [
+                "1 hour click & collect",
+                "1 hour click and collect",
+                "click & collect",
+                "click and collect",
+                "in-store",
+                "in store",
+            ]
+
+            for phrase in available_phrases:
+
+                if phrase in wairau_section:
+
+                    result["status"] = "in_stock"
                     result["stock"] = True
                     result["reason"] = (
-                        "Wairau Park has Click & Collect / "
+                        "Wairau Park has "
+                        "Click & Collect / "
                         "In-store availability"
                     )
 
                     print(
-                        "RESULT: Wairau Park is IN STOCK!"
+                        "RESULT: IN STOCK!"
                     )
 
-                else:
-
-                    result["stock"] = False
-                    result["reason"] = (
-                        "Wairau Park found, but availability "
-                        "could not be determined"
+                    page.screenshot(
+                        path="jbhifi_debug.png",
+                        full_page=True,
                     )
 
-                    print(
-                        "RESULT: Could not determine stock."
-                    )
+                    return result
 
-            # ------------------------------------------------
-            # Save a screenshot for debugging.
-            # ------------------------------------------------
+            # ==================================================
+            # UNKNOWN
+            # ==================================================
+
+            result["status"] = "unknown"
+            result["stock"] = False
+            result["reason"] = (
+                "Wairau Park was found but its "
+                "availability could not be determined"
+            )
+
+            print(
+                "RESULT: UNKNOWN"
+            )
+
+            page.screenshot(
+                path="jbhifi_debug.png",
+                full_page=True,
+            )
+
+            return result
+
+        except PlaywrightTimeoutError as e:
+
+            result["status"] = "unknown"
+            result["stock"] = False
+            result["reason"] = (
+                f"JB Hi-Fi browser timeout: {e}"
+            )
+
+            print(result["reason"])
 
             try:
                 page.screenshot(
                     path="jbhifi_debug.png",
                     full_page=True,
                 )
-                print("Saved jbhifi_debug.png")
             except Exception:
                 pass
 
-        except PlaywrightTimeoutError as e:
-
-            result["stock"] = False
-            result["reason"] = (
-                f"JB Hi-Fi page timed out: {e}"
-            )
-
-            print(result["reason"])
+            return result
 
         except Exception as e:
 
+            result["status"] = "unknown"
             result["stock"] = False
             result["reason"] = (
                 f"JB Hi-Fi browser error: {e}"
@@ -458,15 +809,23 @@ def check_jbhifi_wairau():
 
             print(result["reason"])
 
+            try:
+                page.screenshot(
+                    path="jbhifi_debug.png",
+                    full_page=True,
+                )
+            except Exception:
+                pass
+
+            return result
+
         finally:
 
             browser.close()
 
-    return result
-
 
 # ============================================================
-# OTHER RETAILER CHECK
+# OTHER RETAILERS
 # ============================================================
 
 def check_generic_retailer(name, url):
@@ -480,15 +839,22 @@ def check_generic_retailer(name, url):
 
         response = requests.get(
             url,
-            headers=HEADERS,
+            headers={
+                "User-Agent": USER_AGENT,
+                "Accept-Language": "en-NZ,en;q=0.9",
+            },
             timeout=30,
         )
 
-        print("HTTP status:", response.status_code)
+        print(
+            "HTTP status:",
+            response.status_code
+        )
 
         if response.status_code != 200:
 
             return {
+                "status": "unknown",
                 "stock": False,
                 "reason": (
                     f"HTTP {response.status_code}"
@@ -497,10 +863,7 @@ def check_generic_retailer(name, url):
 
         text = response.text.lower()
 
-        # ------------------------------------------------
-        # Negative phrases FIRST.
-        # ------------------------------------------------
-
+        # Negative phrases first.
         negative_phrases = [
             "out of stock",
             "sold out",
@@ -516,13 +879,12 @@ def check_generic_retailer(name, url):
             if phrase in text:
 
                 return {
+                    "status": "out_of_stock",
                     "stock": False,
-                    "reason": f"Detected: {phrase}",
+                    "reason": (
+                        f"Detected: {phrase}"
+                    ),
                 }
-
-        # ------------------------------------------------
-        # Positive purchase phrases.
-        # ------------------------------------------------
 
         positive_phrases = [
             "add to cart",
@@ -536,25 +898,32 @@ def check_generic_retailer(name, url):
             if phrase in text:
 
                 return {
+                    "status": "in_stock",
                     "stock": True,
-                    "reason": f"Detected: {phrase}",
+                    "reason": (
+                        f"Detected: {phrase}"
+                    ),
                 }
 
         return {
+            "status": "unknown",
             "stock": False,
-            "reason": "No purchase button detected",
+            "reason": (
+                "No reliable stock indicator detected"
+            ),
         }
 
     except Exception as e:
 
         return {
+            "status": "unknown",
             "stock": False,
             "reason": f"Error: {e}",
         }
 
 
 # ============================================================
-# EMAIL WHEN STOCK BECOMES AVAILABLE
+# STOCK EMAIL
 # ============================================================
 
 def send_stock_email(available_retailers):
@@ -575,13 +944,16 @@ Reason: {details['reason']}
 """
 
     body += """
-This alert was triggered because stock changed from unavailable
+The tracker detected a change from unavailable
 to available.
 
-The tracker will continue checking automatically.
+It will continue checking automatically.
 """
 
-    return send_email(subject, body)
+    return send_email(
+        subject,
+        body,
+    )
 
 
 # ============================================================
@@ -594,15 +966,19 @@ def main():
     print("PS5 PRO STOCK TRACKER")
     print("=" * 60)
 
-    print("TEST_MODE:", TEST_MODE)
     print(
-        "Email configured:",
-        bool(RESEND_API_KEY),
+        "TEST_MODE:",
+        TEST_MODE
     )
 
-    # --------------------------------------------------------
+    print(
+        "Email configured:",
+        bool(RESEND_API_KEY)
+    )
+
+    # ========================================================
     # TEST MODE
-    # --------------------------------------------------------
+    # ========================================================
 
     if TEST_MODE:
 
@@ -610,18 +986,20 @@ def main():
         print("TEST MODE ENABLED")
         print("Sending test email...")
 
-        success = send_test_email()
-
-        if success:
-            print("Test email sent successfully.")
+        if send_test_email():
+            print(
+                "Test email sent successfully."
+            )
         else:
-            print("Test email failed.")
+            print(
+                "Test email failed."
+            )
 
         return
 
-    # --------------------------------------------------------
-    # Load previous state.
-    # --------------------------------------------------------
+    # ========================================================
+    # LOAD PREVIOUS STATE
+    # ========================================================
 
     previous_state = load_state()
 
@@ -632,26 +1010,64 @@ def main():
 
         print(
             f"  {retailer}: "
-            f"{state.get('stock', False)}"
+            f"{state.get('status', 'unknown')}"
         )
 
-    # --------------------------------------------------------
-    # Check all retailers.
-    # --------------------------------------------------------
+    # ========================================================
+    # CURRENT STATE
+    # ========================================================
 
     current_state = {}
 
-    # --------------------------------------------------------
-    # JB HI-FI — SPECIAL Wairau CHECK
-    # --------------------------------------------------------
+    # ========================================================
+    # JB HI-FI
+    # ========================================================
 
     jb_result = check_jbhifi_wairau()
 
-    current_state["JB Hi-Fi"] = jb_result
+    # --------------------------------------------------------
+    # IMPORTANT:
+    #
+    # If JB Hi-Fi returns UNKNOWN, preserve the previous
+    # state instead of changing it to OUT OF STOCK.
+    # --------------------------------------------------------
 
-    # --------------------------------------------------------
+    if jb_result["status"] == "unknown":
+
+        previous_jb = previous_state.get(
+            "JB Hi-Fi",
+            {
+                "status": "unknown",
+                "stock": False,
+                "reason": "No previous state",
+            },
+        )
+
+        current_state["JB Hi-Fi"] = {
+            "status": "unknown",
+            "stock": previous_jb.get(
+                "stock",
+                False,
+            ),
+            "reason": jb_result["reason"],
+        }
+
+        print()
+        print(
+            "JB Hi-Fi result is UNKNOWN."
+        )
+
+        print(
+            "Previous stock state will be preserved."
+        )
+
+    else:
+
+        current_state["JB Hi-Fi"] = jb_result
+
+    # ========================================================
     # OTHER RETAILERS
-    # --------------------------------------------------------
+    # ========================================================
 
     for retailer in [
         "Noel Leeming",
@@ -664,17 +1080,34 @@ def main():
             PRODUCTS[retailer],
         )
 
+        # Preserve previous state if the request failed.
+        if result["status"] == "unknown":
+
+            previous_result = previous_state.get(
+                retailer,
+                {
+                    "stock": False,
+                    "status": "unknown",
+                },
+            )
+
+            result["stock"] = previous_result.get(
+                "stock",
+                False,
+            )
+
         current_state[retailer] = result
 
         print(
             f"{retailer}: "
+            f"Status={result['status']}, "
             f"Stock={result['stock']}, "
             f"Reason={result['reason']}"
         )
 
-    # --------------------------------------------------------
-    # Print final state.
-    # --------------------------------------------------------
+    # ========================================================
+    # PRINT CURRENT STATE
+    # ========================================================
 
     print()
     print("=" * 60)
@@ -683,18 +1116,26 @@ def main():
 
     for retailer, result in current_state.items():
 
+        if result["status"] == "in_stock":
+            display_status = "IN STOCK"
+
+        elif result["status"] == "out_of_stock":
+            display_status = "OUT OF STOCK"
+
+        else:
+            display_status = "UNKNOWN"
+
         print(
-            f"{retailer}: "
-            f"{'IN STOCK' if result['stock'] else 'OUT OF STOCK'}"
+            f"{retailer}: {display_status}"
         )
 
         print(
             f"  Reason: {result['reason']}"
         )
 
-    # --------------------------------------------------------
-    # Find NEWLY available products.
-    # --------------------------------------------------------
+    # ========================================================
+    # FIND NEWLY AVAILABLE STOCK
+    # ========================================================
 
     newly_available = {}
 
@@ -704,24 +1145,28 @@ def main():
 
         previous_stock = previous_state.get(
             retailer,
-            {}
+            {},
         ).get(
             "stock",
-            False
+            False,
         )
 
+        # Only alert when we have positively identified
+        # that the product is in stock.
         if current_stock and not previous_stock:
 
             newly_available[retailer] = result
 
-    # --------------------------------------------------------
-    # Send alert.
-    # --------------------------------------------------------
+    # ========================================================
+    # SEND ALERT
+    # ========================================================
 
     if newly_available:
 
         print()
-        print("🚨 NEW STOCK DETECTED!")
+        print(
+            "🚨 NEW STOCK DETECTED!"
+        )
 
         for retailer in newly_available:
 
@@ -736,17 +1181,24 @@ def main():
     else:
 
         print()
-        print("No newly available stock.")
-        print("No alert email sent.")
+        print(
+            "No newly available stock."
+        )
 
-    # --------------------------------------------------------
-    # Save state.
-    # --------------------------------------------------------
+        print(
+            "No alert email sent."
+        )
+
+    # ========================================================
+    # SAVE STATE
+    # ========================================================
 
     save_state(current_state)
 
     print()
-    print("New state saved.")
+    print(
+        "New state saved."
+    )
 
     print()
     print("=" * 60)
@@ -756,3 +1208,20 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
+
+**You don't need to change the GitHub Actions workflow I gave you previously.** It already installs Playwright and Chromium.
+
+After replacing the Python file, **commit it**, then go to **Actions → PS5 Pro Stock Tracker → Run workflow → `test_email: false`**.
+
+The most important thing we're looking for in the next run is whether the log gets past:
+
+```text
+Opening JB Hi-Fi product page...
+Product page loaded.
+Looking for Add to cart...
+```
+
+and then follows the cart flow.
+
+If it stops at one of those steps, the `jbhifi_debug.png` artifact should tell us exactly where the browser ended up, even though you can't upload it here.
