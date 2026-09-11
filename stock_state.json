@@ -1,17 +1,21 @@
 {
   "JB Hi-Fi": {
+    "status": "unknown",
     "stock": false,
-    "reason": "Could not find Wairau Park on the page"
+    "reason": "Could not find store search box"
   },
   "Noel Leeming": {
+    "status": "unknown",
     "stock": false,
     "reason": "HTTP 403"
   },
   "Harvey Norman": {
+    "status": "out_of_stock",
     "stock": false,
     "reason": "Detected: out of stock"
   },
   "The Warehouse": {
+    "status": "unknown",
     "stock": false,
     "reason": "HTTP 403"
   }
