@@ -1,16 +1,16 @@
 name: PS5 Pro Stock Tracker
 
 on:
-  schedule:
-    - cron: "0 * * * *"
-
   workflow_dispatch:
     inputs:
       test_email:
         description: "Send a test email"
-        required: false
-        default: false
+        required: true
+        default: true
         type: boolean
+
+  schedule:
+    - cron: "0 * * * *"
 
 permissions:
   contents: write
@@ -20,7 +20,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -35,5 +34,8 @@ jobs:
       - name: Run PS5 stock tracker
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          TEST_MODE: ${{ inputs.test_email }}
-        run: python ps5_stock_tracker.py
+          TEST_MODE: ${{ inputs.test_email || 'false' }}
+        run: |
+          echo "Starting PS5 stock tracker..."
+          echo "TEST_MODE=$TEST_MODE"
+          python ps5_stock_tracker.py
