@@ -26,12 +26,10 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: |
-          pip install requests
+        run: pip install requests
 
       - name: Run PS5 stock tracker
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          TEST_MODE: ${{ inputs.test_email || 'false' }}
-        run: |
-          python ps5_stock_tracker.py
+          TEST_MODE: ${{ inputs.test_email }}
+        run: python ps5_stock_tracker.py
