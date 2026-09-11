@@ -37,17 +37,3 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           TEST_MODE: ${{ inputs.test_email }}
         run: python ps5_stock_tracker.py
-
-      - name: Save stock state
-        run: |
-          git config user.name "PS5 Stock Tracker"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add stock_state.json
-
-          if git diff --cached --quiet; then
-            echo "No state changes to commit."
-          else
-            git commit -m "Update PS5 stock state"
-            git push
-          fi
