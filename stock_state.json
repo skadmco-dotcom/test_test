@@ -1,22 +1,18 @@
 {
   "JB Hi-Fi": {
-    "in_stock": false,
-    "last_checked": "2026-09-11T23:15:35.445202+00:00",
-    "reason": "Detected: not available"
+    "stock": false,
+    "reason": "Could not find Wairau Park on the page"
   },
   "Noel Leeming": {
-    "in_stock": false,
-    "last_checked": "2026-09-11T23:15:35.686725+00:00",
-    "reason": "ERROR: 403 Client Error: Forbidden for url: https://www.noelleeming.co.nz/p/ps5-pro-console/N232261.html"
+    "stock": false,
+    "reason": "HTTP 403"
   },
   "Harvey Norman": {
-    "in_stock": false,
-    "last_checked": "2026-09-11T23:15:39.234932+00:00",
-    "reason": "No purchase button detected"
+    "stock": false,
+    "reason": "Detected: out of stock"
   },
   "The Warehouse": {
-    "in_stock": false,
-    "last_checked": "2026-09-11T23:15:39.288714+00:00",
-    "reason": "ERROR: 403 Client Error: Forbidden for url: https://www.thewarehouse.co.nz/p/ps5-pro-console/R2956306.html"
+    "stock": false,
+    "reason": "HTTP 403"
   }
 }
