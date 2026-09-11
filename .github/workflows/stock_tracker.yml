@@ -24,32 +24,79 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      # --------------------------------------------------
+      # CHECKOUT
+      # --------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      # --------------------------------------------------
+      # PYTHON
+      # --------------------------------------------------
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      # --------------------------------------------------
+      # INSTALL PYTHON PACKAGES
+      # --------------------------------------------------
+
       - name: Install dependencies
-        run: pip install requests
+        run: |
+          pip install requests playwright
+
+      # --------------------------------------------------
+      # INSTALL CHROMIUM
+      # --------------------------------------------------
+
+      - name: Install Playwright Chromium
+        run: |
+          playwright install --with-deps chromium
+
+      # --------------------------------------------------
+      # RUN TRACKER
+      # --------------------------------------------------
 
       - name: Run PS5 stock tracker
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           TEST_MODE: ${{ inputs.test_email || 'false' }}
+
         run: |
+
           echo "======================================"
           echo "Starting PS5 stock tracker"
           echo "======================================"
+
           echo "TEST_MODE=$TEST_MODE"
+
           python ps5_stock_tracker.py
+
+      # --------------------------------------------------
+      # SAVE DEBUG SCREENSHOT IF CREATED
+      # --------------------------------------------------
+
+      - name: Upload JB Hi-Fi debug screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jbhifi-debug
+          path: jbhifi_debug.png
+          if-no-files-found: ignore
+
+      # --------------------------------------------------
+      # SAVE STOCK STATE
+      # --------------------------------------------------
 
       - name: Save stock state
         run: |
+
           echo "Saving stock state..."
 
           cp stock_state.json /tmp/stock_state.json
@@ -63,13 +110,20 @@ jobs:
           cp /tmp/stock_state.json stock_state.json
 
           git config user.name "PS5 Stock Tracker"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add stock_state.json
 
           if git diff --cached --quiet; then
+
             echo "No state changes to commit."
+
           else
+
             git commit -m "Update PS5 stock state"
+
             git push origin HEAD:main
+
           fi
