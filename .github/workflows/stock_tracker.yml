@@ -1,41 +1,122 @@
 name: PS5 Pro Stock Tracker
 
 on:
+  schedule:
+    - cron: "0 * * * *"
+
   workflow_dispatch:
     inputs:
       test_email:
         description: "Send a test email"
         required: true
-        default: true
+        default: false
         type: boolean
 
-  schedule:
-    - cron: "0 * * * *"
+
+# Prevent two tracker runs from happening at
+# the same time.
+concurrency:
+  group: ps5-stock-tracker
+  cancel-in-progress: false
+
 
 permissions:
   contents: write
 
+
 jobs:
+
   check-stock:
+
     runs-on: ubuntu-latest
 
     steps:
+
+      # -----------------------------------------
+      # Checkout
+      # -----------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+
+      # -----------------------------------------
+      # Python
+      # -----------------------------------------
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+
+      # -----------------------------------------
+      # Dependencies
+      # -----------------------------------------
+
       - name: Install dependencies
-        run: pip install requests
+        run: |
+          pip install requests
+
+
+      # -----------------------------------------
+      # Run tracker
+      # -----------------------------------------
 
       - name: Run PS5 stock tracker
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           TEST_MODE: ${{ inputs.test_email || 'false' }}
+
         run: |
-          echo "Starting PS5 stock tracker..."
+
+          echo "======================================"
+          echo "Starting PS5 stock tracker"
+          echo "======================================"
+
           echo "TEST_MODE=$TEST_MODE"
+
           python ps5_stock_tracker.py
+
+
+      # -----------------------------------------
+      # Save state back to GitHub
+      # -----------------------------------------
+
+      - name: Save stock state
+        run: |
+
+          echo "Saving stock state..."
+
+          # Keep a copy of the newly generated state.
+          cp stock_state.json /tmp/stock_state.json
+
+          # Get the latest version of the repository.
+          git fetch origin main
+
+          # Bring this runner up to date.
+          git rebase origin/main
+
+          # Put the newly generated state back.
+          cp /tmp/stock_state.json stock_state.json
+
+          # Configure Git.
+          git config user.name "PS5 Stock Tracker"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Commit state.
+          git add stock_state.json
+
+          if git diff --cached --quiet; then
+
+            echo "No state changes to commit."
+
+          else
+
+            git commit -m "Update PS5 stock state"
+
+            git push origin HEAD:main
+
+          fi
