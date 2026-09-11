@@ -1,0 +1,24 @@
+{
+  "JB Hi-Fi": {
+    "in_stock": false,
+    "last_checked": "2026-09-11T22:49:58.695691+00:00",
+    "reason": "Out of stock indicator: not available"
+  },
+  "Noel Leeming": {
+    "in_stock": false,
+    "last_checked": "2026-09-11T22:49:58.695691+00:00",
+    "reason": "Check failed",
+    "error": "403 Client Error: Forbidden for url: https://www.noelleeming.co.nz/p/ps5-pro-console/N232261.html"
+  },
+  "Harvey Norman": {
+    "in_stock": false,
+    "last_checked": "2026-09-11T22:49:58.695691+00:00",
+    "reason": "Out of stock indicator: not currently available online"
+  },
+  "The Warehouse": {
+    "in_stock": false,
+    "last_checked": "2026-09-11T22:49:58.695691+00:00",
+    "reason": "Check failed",
+    "error": "403 Client Error: Forbidden for url: https://www.thewarehouse.co.nz/p/ps5-pro-console/R2956306.html"
+  }
+}
