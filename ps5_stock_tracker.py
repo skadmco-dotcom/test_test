@@ -1,4 +1,3 @@
-```python
 import os
 import json
 import requests
@@ -1208,20 +1207,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
-
-**You don't need to change the GitHub Actions workflow I gave you previously.** It already installs Playwright and Chromium.
-
-After replacing the Python file, **commit it**, then go to **Actions → PS5 Pro Stock Tracker → Run workflow → `test_email: false`**.
-
-The most important thing we're looking for in the next run is whether the log gets past:
-
-```text
-Opening JB Hi-Fi product page...
-Product page loaded.
-Looking for Add to cart...
-```
-
-and then follows the cart flow.
-
-If it stops at one of those steps, the `jbhifi_debug.png` artifact should tell us exactly where the browser ended up, even though you can't upload it here.
