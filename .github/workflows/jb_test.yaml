@@ -1,0 +1,45 @@
+name: Wairau PS5 Pro Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Run Wairau Stage 1
+        run: |
+          echo "======================================"
+          echo "Starting Wairau Stage 1"
+          echo "======================================"
+
+          python jbhifi_wairau_tracker.py
+
+      - name: Upload Wairau screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wairau-stage-1-screenshots
+          path: |
+            wairau_stage1.png
+            wairau_stage1_after.png
+            wairau_stage1_error.png
+          if-no-files-found: ignore
