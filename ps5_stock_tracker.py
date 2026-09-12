@@ -489,53 +489,243 @@ def check_jbhifi_wairau():
 
             page.wait_for_timeout(3000)
 
-            # ==================================================
-            # STEP 5 — ENTER STORE SEARCH
+                        # ==================================================
+            # STEP 5 — FIND "GETTING YOUR ITEM" TEXT BOX
             # ==================================================
 
             print()
             print(
-                "Looking for postcode/suburb search..."
+                "Looking for 'Getting your item' text box..."
             )
 
             search_box = None
 
-            search_selectors = [
-                'input[placeholder*="postcode"]',
-                'input[placeholder*="Postcode"]',
-                'input[placeholder*="suburb"]',
-                'input[placeholder*="Suburb"]',
-                'input[placeholder*="postcode or suburb"]',
-                'input[placeholder*="postcode or suburb"]',
-                'input[type="search"]',
-            ]
+            # Find the "Getting your item" section first.
+            getting_item = None
 
-            for selector in search_selectors:
+            try:
+
+                getting_item = page.get_by_text(
+                    "Getting your item",
+                    exact=True
+                ).first
+
+                if getting_item.is_visible(timeout=3000):
+
+                    print(
+                        "Found 'Getting your item' section."
+                    )
+
+            except Exception:
+                getting_item = None
+
+            # --------------------------------------------------
+            # Look for an input associated with the
+            # "Getting your item" section.
+            # --------------------------------------------------
+
+            if getting_item:
 
                 try:
 
-                    locator = page.locator(
-                        selector
-                    ).first
+                    # Start from the "Getting your item"
+                    # element and move through its parent
+                    # containers looking for an input.
+                    current = getting_item
 
-                    if locator.is_visible(timeout=2000):
+                    for level in range(6):
 
-                        search_box = locator
+                        try:
 
-                        print(
-                            f"Found store search box: "
-                            f"{selector}"
-                        )
+                            parent = current.locator("..")
 
-                        break
+                            inputs = parent.locator(
+                                "input"
+                            )
 
-                except Exception:
-                    pass
+                            count = inputs.count()
+
+                            print(
+                                f"Checking parent level "
+                                f"{level}: {count} input(s)"
+                            )
+
+                            for i in range(count):
+
+                                candidate = inputs.nth(i)
+
+                                try:
+
+                                    if candidate.is_visible(
+                                        timeout=1000
+                                    ):
+
+                                        placeholder = (
+                                            candidate.get_attribute(
+                                                "placeholder"
+                                            )
+                                            or ""
+                                        )
+
+                                        aria_label = (
+                                            candidate.get_attribute(
+                                                "aria-label"
+                                            )
+                                            or ""
+                                        )
+
+                                        print(
+                                            "Candidate input:"
+                                        )
+
+                                        print(
+                                            f"  placeholder="
+                                            f"'{placeholder}'"
+                                        )
+
+                                        print(
+                                            f"  aria-label="
+                                            f"'{aria_label}'"
+                                        )
+
+                                        # Make sure we do NOT
+                                        # accidentally select
+                                        # the main website search.
+                                        combined = (
+                                            placeholder
+                                            + " "
+                                            + aria_label
+                                        ).lower()
+
+                                        if (
+                                            "search products"
+                                            not in combined
+                                            and
+                                            "search for products"
+                                            not in combined
+                                        ):
+
+                                            search_box = candidate
+
+                                            print(
+                                                "Selected "
+                                                "'Getting your item' "
+                                                "text box."
+                                            )
+
+                                            break
+
+                                except Exception:
+                                    pass
+
+                            if search_box:
+                                break
+
+                            current = parent
+
+                        except Exception:
+                            break
+
+            # --------------------------------------------------
+            # Fallback: inspect visible inputs and choose the
+            # first one that is NOT the global product search.
+            # --------------------------------------------------
+
+            if not search_box:
+
+                print(
+                    "Trying fallback input search..."
+                )
+
+                try:
+
+                    inputs = page.locator(
+                        "input"
+                    )
+
+                    count = inputs.count()
+
+                    print(
+                        f"Found {count} input fields."
+                    )
+
+                    for i in range(count):
+
+                        candidate = inputs.nth(i)
+
+                        try:
+
+                            if not candidate.is_visible(
+                                timeout=500
+                            ):
+                                continue
+
+                            placeholder = (
+                                candidate.get_attribute(
+                                    "placeholder"
+                                )
+                                or ""
+                            )
+
+                            aria_label = (
+                                candidate.get_attribute(
+                                    "aria-label"
+                                )
+                                or ""
+                            )
+
+                            combined = (
+                                placeholder
+                                + " "
+                                + aria_label
+                            ).lower()
+
+                            print(
+                                f"Input {i}: "
+                                f"placeholder="
+                                f"'{placeholder}', "
+                                f"aria-label="
+                                f"'{aria_label}'"
+                            )
+
+                            # Ignore the global website search.
+                            if (
+                                "search products"
+                                in combined
+                                or
+                                "search for products"
+                                in combined
+                            ):
+                                continue
+
+                            search_box = candidate
+
+                            print(
+                                f"Selected input {i} "
+                                "as the store/location "
+                                "text box."
+                            )
+
+                            break
+
+                        except Exception:
+                            pass
+
+                except Exception as e:
+
+                    print(
+                        f"Fallback input search error: {e}"
+                    )
+
+            # --------------------------------------------------
+            # If still not found, stop safely.
+            # --------------------------------------------------
 
             if not search_box:
 
                 result["reason"] = (
-                    "Could not find store search box"
+                    "Could not find the 'Getting your item' "
+                    "text box"
                 )
 
                 print(result["reason"])
