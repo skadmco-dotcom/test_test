@@ -25,10 +25,10 @@ jobs:
           pip install playwright
           playwright install --with-deps chromium
 
-      - name: Run Wairau Stage 3
+      - name: Run Wairau Stage 4
         run: |
           echo "======================================"
-          echo "Starting Wairau Stage 3"
+          echo "Starting Wairau Stage 4"
           echo "======================================"
 
           python jbhifi_wairau_tracker.py
@@ -37,9 +37,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wairau-stage-3-screenshots
+          name: wairau-stage-4-screenshots
           path: |
-            wairau_stage1.png
-            wairau_stage1_after.png
-            wairau_stage1_error.png
+            wairau_stage4.png
+            wairau_stage4_after.png
+            wairau_stage4_error.png
           if-no-files-found: ignore
