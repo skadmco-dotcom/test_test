@@ -1,8 +1,8 @@
 {
   "JB Hi-Fi": {
-    "status": "present",
-    "listing_present": true,
-    "reason": "PS5 Pro product listing detected on JB Hi-Fi"
+    "status": "gone",
+    "listing_present": false,
+    "reason": "PS5 Pro listing is not currently detected on JB Hi-Fi"
   },
   "last_nightly_email": ""
 }
