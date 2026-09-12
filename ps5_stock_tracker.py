@@ -375,7 +375,6 @@ def check_jbhifi_wairau():
                 except Exception:
                     pass
 
-            # If clicking did not work, directly go to cart.
             if not review_cart_found:
 
                 print(
@@ -452,9 +451,6 @@ def check_jbhifi_wairau():
 
             if not availability_found:
 
-                # Sometimes the availability section
-                # appears automatically.
-
                 current_text = get_page_text(page)
 
                 if (
@@ -462,6 +458,9 @@ def check_jbhifi_wairau():
                     in current_text
                     or
                     "postcode or suburb"
+                    in current_text
+                    or
+                    "getting your item"
                     in current_text
                 ):
 
@@ -489,7 +488,7 @@ def check_jbhifi_wairau():
 
             page.wait_for_timeout(3000)
 
-                        # ==================================================
+            # ==================================================
             # STEP 5 — FIND "GETTING YOUR ITEM" TEXT BOX
             # ==================================================
 
@@ -500,7 +499,7 @@ def check_jbhifi_wairau():
 
             search_box = None
 
-            # Find the "Getting your item" section first.
+            # Find the Getting your item text.
             getting_item = None
 
             try:
@@ -520,140 +519,131 @@ def check_jbhifi_wairau():
                 getting_item = None
 
             # --------------------------------------------------
-            # Look for an input associated with the
-            # "Getting your item" section.
+            # Look inside the parent containers of
+            # "Getting your item" for the correct input.
             # --------------------------------------------------
 
             if getting_item:
 
-                try:
+                current = getting_item
 
-                    # Start from the "Getting your item"
-                    # element and move through its parent
-                    # containers looking for an input.
-                    current = getting_item
+                for level in range(8):
 
-                    for level in range(6):
+                    try:
 
-                        try:
+                        parent = current.locator("..")
 
-                            parent = current.locator("..")
+                        inputs = parent.locator(
+                            "input"
+                        )
 
-                            inputs = parent.locator(
-                                "input"
-                            )
+                        count = inputs.count()
 
-                            count = inputs.count()
+                        print(
+                            f"Checking parent level "
+                            f"{level}: {count} input(s)"
+                        )
 
-                            print(
-                                f"Checking parent level "
-                                f"{level}: {count} input(s)"
-                            )
+                        for i in range(count):
 
-                            for i in range(count):
+                            try:
 
                                 candidate = inputs.nth(i)
 
-                                try:
+                                if not candidate.is_visible(
+                                    timeout=1000
+                                ):
+                                    continue
 
-                                    if candidate.is_visible(
-                                        timeout=1000
-                                    ):
+                                placeholder = (
+                                    candidate.get_attribute(
+                                        "placeholder"
+                                    )
+                                    or ""
+                                )
 
-                                        placeholder = (
-                                            candidate.get_attribute(
-                                                "placeholder"
-                                            )
-                                            or ""
-                                        )
+                                aria_label = (
+                                    candidate.get_attribute(
+                                        "aria-label"
+                                    )
+                                    or ""
+                                )
 
-                                        aria_label = (
-                                            candidate.get_attribute(
-                                                "aria-label"
-                                            )
-                                            or ""
-                                        )
+                                print(
+                                    f"Input candidate: "
+                                    f"placeholder="
+                                    f"'{placeholder}', "
+                                    f"aria-label="
+                                    f"'{aria_label}'"
+                                )
 
-                                        print(
-                                            "Candidate input:"
-                                        )
+                                combined = (
+                                    placeholder
+                                    + " "
+                                    + aria_label
+                                ).lower()
 
-                                        print(
-                                            f"  placeholder="
-                                            f"'{placeholder}'"
-                                        )
+                                # Ignore the global website
+                                # product search box.
+                                if (
+                                    "search products"
+                                    in combined
+                                    or
+                                    "search for products"
+                                    in combined
+                                ):
+                                    continue
 
-                                        print(
-                                            f"  aria-label="
-                                            f"'{aria_label}'"
-                                        )
+                                search_box = candidate
 
-                                        # Make sure we do NOT
-                                        # accidentally select
-                                        # the main website search.
-                                        combined = (
-                                            placeholder
-                                            + " "
-                                            + aria_label
-                                        ).lower()
+                                print(
+                                    "Selected input associated "
+                                    "with 'Getting your item'."
+                                )
 
-                                        if (
-                                            "search products"
-                                            not in combined
-                                            and
-                                            "search for products"
-                                            not in combined
-                                        ):
-
-                                            search_box = candidate
-
-                                            print(
-                                                "Selected "
-                                                "'Getting your item' "
-                                                "text box."
-                                            )
-
-                                            break
-
-                                except Exception:
-                                    pass
-
-                            if search_box:
                                 break
 
-                            current = parent
+                            except Exception:
+                                pass
 
-                        except Exception:
+                        if search_box:
                             break
 
+                        current = parent
+
+                    except Exception:
+                        break
+
             # --------------------------------------------------
-            # Fallback: inspect visible inputs and choose the
-            # first one that is NOT the global product search.
+            # FALLBACK
             # --------------------------------------------------
 
             if not search_box:
 
                 print(
-                    "Trying fallback input search..."
+                    "Could not find input directly under "
+                    "'Getting your item'."
+                )
+
+                print(
+                    "Trying visible inputs as fallback..."
                 )
 
                 try:
 
-                    inputs = page.locator(
-                        "input"
-                    )
+                    inputs = page.locator("input")
 
                     count = inputs.count()
 
                     print(
-                        f"Found {count} input fields."
+                        f"Found {count} total input fields."
                     )
 
                     for i in range(count):
 
-                        candidate = inputs.nth(i)
-
                         try:
+
+                            candidate = inputs.nth(i)
 
                             if not candidate.is_visible(
                                 timeout=500
@@ -688,7 +678,6 @@ def check_jbhifi_wairau():
                                 f"'{aria_label}'"
                             )
 
-                            # Ignore the global website search.
                             if (
                                 "search products"
                                 in combined
@@ -702,8 +691,7 @@ def check_jbhifi_wairau():
 
                             print(
                                 f"Selected input {i} "
-                                "as the store/location "
-                                "text box."
+                                "as store/location input."
                             )
 
                             break
@@ -717,15 +705,11 @@ def check_jbhifi_wairau():
                         f"Fallback input search error: {e}"
                     )
 
-            # --------------------------------------------------
-            # If still not found, stop safely.
-            # --------------------------------------------------
-
             if not search_box:
 
                 result["reason"] = (
-                    "Could not find the 'Getting your item' "
-                    "text box"
+                    "Could not find the "
+                    "'Getting your item' text box"
                 )
 
                 print(result["reason"])
@@ -741,6 +725,7 @@ def check_jbhifi_wairau():
             # STEP 6 — SEARCH FOR WAIRAU PARK
             # ==================================================
 
+            print()
             print(
                 f"Searching for: {STORE_SEARCH}"
             )
@@ -749,9 +734,10 @@ def check_jbhifi_wairau():
 
             page.wait_for_timeout(2000)
 
-            # Try Enter.
             try:
+
                 search_box.press("Enter")
+
             except Exception:
                 pass
 
@@ -801,7 +787,6 @@ def check_jbhifi_wairau():
 
             if not wairau_found:
 
-                # It may already be selected and displayed.
                 current_text = get_page_text(page)
 
                 if "wairau park" in current_text:
@@ -841,7 +826,6 @@ def check_jbhifi_wairau():
 
             body_text = get_page_text(page)
 
-            # Find the Wairau section.
             wairau_position = body_text.find(
                 "wairau park"
             )
@@ -862,7 +846,6 @@ def check_jbhifi_wairau():
 
                 return result
 
-            # Only inspect the text near Wairau Park.
             wairau_section = body_text[
                 wairau_position:
                 wairau_position + 1500
@@ -979,10 +962,12 @@ def check_jbhifi_wairau():
             print(result["reason"])
 
             try:
+
                 page.screenshot(
                     path="jbhifi_debug.png",
                     full_page=True,
                 )
+
             except Exception:
                 pass
 
@@ -999,10 +984,12 @@ def check_jbhifi_wairau():
             print(result["reason"])
 
             try:
+
                 page.screenshot(
                     path="jbhifi_debug.png",
                     full_page=True,
                 )
+
             except Exception:
                 pass
 
@@ -1011,7 +998,6 @@ def check_jbhifi_wairau():
         finally:
 
             browser.close()
-
 
 # ============================================================
 # OTHER RETAILERS
