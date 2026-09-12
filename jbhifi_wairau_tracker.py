@@ -9,15 +9,12 @@ PRODUCT_URL = (
 
 def main():
 
-    print("=" * 60)
+    print("=" * 70)
     print("JB HI-FI WAIRAU PS5 PRO TRACKER")
-    print("STAGE 1 - PRODUCT PAGE / ADD TO CART")
-    print("=" * 60)
+    print("STAGE 2 - CART / STORE INVESTIGATION")
+    print("=" * 70)
 
     with sync_playwright() as p:
-
-        print()
-        print("Launching Chromium...")
 
         browser = p.chromium.launch(
             headless=True
@@ -26,7 +23,7 @@ def main():
         page = browser.new_page(
             viewport={
                 "width": 1440,
-                "height": 1000
+                "height": 1200
             },
             user_agent=(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -39,9 +36,9 @@ def main():
         try:
 
             print()
-            print("=" * 60)
-            print("OPENING JB HI-FI PS5 PRO PAGE")
-            print("=" * 60)
+            print("=" * 70)
+            print("OPENING PRODUCT PAGE")
+            print("=" * 70)
 
             response = page.goto(
                 PRODUCT_URL,
@@ -50,90 +47,120 @@ def main():
             )
 
             if response:
-                print(
-                    "HTTP status:",
-                    response.status
-                )
-            else:
-                print(
-                    "HTTP status: unknown"
-                )
+                print("HTTP status:", response.status)
 
-            # Give the page time to finish loading
             page.wait_for_timeout(5000)
 
-            print(
-                "Page title:",
-                page.title()
-            )
-
-            print(
-                "Current URL:",
-                page.url
-            )
+            print("Page title:", page.title())
+            print("URL:", page.url)
 
             print()
-            print(
-                "Taking initial screenshot..."
+            print("=" * 70)
+            print("CLICKING ADD TO CART")
+            print("=" * 70)
+
+            add_to_cart = page.get_by_role(
+                "button",
+                name="Add to cart",
+                exact=False
             )
 
-            page.screenshot(
-                path="wairau_stage1.png",
-                full_page=True
-            )
+            count = add_to_cart.count()
 
-            print(
-                "Screenshot saved:"
-            )
+            print("Add to cart buttons found:", count)
 
-            print(
-                "wairau_stage1.png"
-            )
+            if count == 0:
+
+                print("NO ADD TO CART BUTTON FOUND.")
+
+            else:
+
+                print("Add to cart found.")
+
+                if add_to_cart.first.is_visible():
+
+                    print("Button is visible.")
+                    print("Clicking...")
+
+                    add_to_cart.first.click(
+                        timeout=10000
+                    )
+
+                    print("Add to cart clicked.")
+
+                    page.wait_for_timeout(5000)
+
+                else:
+
+                    print(
+                        "Add to cart exists "
+                        "but is not visible."
+                    )
 
             print()
-            print("=" * 60)
-            print("CHECKING PAGE CONTENT")
-            print("=" * 60)
+            print("=" * 70)
+            print("CURRENT PAGE")
+            print("=" * 70)
+
+            print("URL:", page.url)
+            print("TITLE:", page.title())
+
+            print()
+            print("=" * 70)
+            print("FULL VISIBLE PAGE TEXT")
+            print("=" * 70)
 
             text = page.locator(
                 "body"
             ).inner_text()
 
-            print(
-                f"Downloaded page text: "
-                f"{len(text):,} characters"
-            )
-
-            if "PS5 Pro" in text:
-                print(
-                    "✓ PS5 Pro text found"
-                )
-
-            elif "PS5 PRO" in text:
-                print(
-                    "✓ PS5 PRO text found"
-                )
-
-            else:
-                print(
-                    "✗ PS5 Pro text NOT found"
-                )
-
-            if "Getting your item" in text:
-                print(
-                    "✓ 'Getting your item' found"
-                )
-
-            else:
-                print(
-                    "✗ 'Getting your item' "
-                    "not currently visible"
-                )
+            print(text)
 
             print()
-            print("=" * 60)
-            print("BUTTONS FOUND ON PAGE")
-            print("=" * 60)
+            print("=" * 70)
+            print("RELEVANT TEXT SEARCH")
+            print("=" * 70)
+
+            keywords = [
+                "Wairau",
+                "Wairau Park",
+                "Getting your item",
+                "pickup",
+                "pick up",
+                "click",
+                "collect",
+                "collection",
+                "delivery",
+                "cart",
+                "review cart",
+                "checkout",
+                "available",
+                "unavailable",
+                "store"
+            ]
+
+            lower_text = text.lower()
+
+            for keyword in keywords:
+
+                if keyword.lower() in lower_text:
+
+                    print(
+                        "FOUND:",
+                        keyword
+                    )
+
+                else:
+
+                    print(
+                        "NOT FOUND:",
+                        keyword
+                    )
+
+            print()
+            print("=" * 70)
+            print("ALL BUTTONS")
+            print("=" * 70)
 
             buttons = page.get_by_role(
                 "button"
@@ -142,7 +169,8 @@ def main():
             button_count = buttons.count()
 
             print(
-                f"Found {button_count} buttons."
+                "Number of buttons:",
+                button_count
             )
 
             for i in range(button_count):
@@ -158,8 +186,7 @@ def main():
                     if name:
 
                         print(
-                            f"Button {i}: "
-                            f"{name}"
+                            f"[BUTTON {i}] {name}"
                         )
 
                 except Exception:
@@ -167,132 +194,9 @@ def main():
                     pass
 
             print()
-            print("=" * 60)
-            print("LOOKING FOR ADD TO CART")
-            print("=" * 60)
-
-            add_to_cart = page.get_by_role(
-                "button",
-                name="Add to cart",
-                exact=False
-            )
-
-            add_count = add_to_cart.count()
-
-            print(
-                f"Add to cart matches: "
-                f"{add_count}"
-            )
-
-            if add_count > 0:
-
-                print()
-                print(
-                    "✓ Add to cart button found."
-                )
-
-                try:
-
-                    visible = (
-                        add_to_cart.first.is_visible()
-                    )
-
-                except Exception:
-
-                    visible = False
-
-                print(
-                    "Visible:",
-                    visible
-                )
-
-                if visible:
-
-                    print()
-                    print(
-                        "Clicking Add to cart..."
-                    )
-
-                    add_to_cart.first.click(
-                        timeout=10000
-                    )
-
-                    print(
-                        "✓ Add to cart clicked."
-                    )
-
-                    page.wait_for_timeout(
-                        5000
-                    )
-
-                    print(
-                        "Current URL after click:"
-                    )
-
-                    print(
-                        page.url
-                    )
-
-                else:
-
-                    print(
-                        "✗ Add to cart exists "
-                        "but is not visible."
-                    )
-
-            else:
-
-                print()
-                print(
-                    "✗ Add to cart button "
-                    "was not found."
-                )
-
-            print()
-            print("=" * 60)
-            print("TAKING POST-CLICK SCREENSHOT")
-            print("=" * 60)
-
-            page.screenshot(
-                path="wairau_stage1_after.png",
-                full_page=True
-            )
-
-            print(
-                "Screenshot saved:"
-            )
-
-            print(
-                "wairau_stage1_after.png"
-            )
-
-            print()
-            print("=" * 60)
-            print("CHECKING PAGE AFTER CART ACTION")
-            print("=" * 60)
-
-            after_text = page.locator(
-                "body"
-            ).inner_text()
-
-            if "Getting your item" in after_text:
-
-                print(
-                    "✓ 'Getting your item' "
-                    "is visible after cart action."
-                )
-
-            else:
-
-                print(
-                    "'Getting your item' "
-                    "is not visible after cart action."
-                )
-
-            print()
-            print(
-                "Looking for cart links/buttons..."
-            )
+            print("=" * 70)
+            print("RELEVANT LINKS")
+            print("=" * 70)
 
             links = page.get_by_role(
                 "link"
@@ -301,12 +205,20 @@ def main():
             link_count = links.count()
 
             print(
-                f"Found {link_count} links."
+                "Number of links:",
+                link_count
             )
 
-            for i in range(
-                min(link_count, 100)
-            ):
+            relevant_words = [
+                "cart",
+                "checkout",
+                "store",
+                "pickup",
+                "collect",
+                "wairau"
+            ]
+
+            for i in range(link_count):
 
                 try:
 
@@ -320,16 +232,19 @@ def main():
                         "href"
                     )
 
-                    if (
-                        name
-                        and (
-                            "cart" in name.lower()
-                            or "cart" in str(href).lower()
-                        )
+                    combined = (
+                        str(name)
+                        + " "
+                        + str(href)
+                    ).lower()
+
+                    if any(
+                        word in combined
+                        for word in relevant_words
                     ):
 
                         print(
-                            f"Cart link {i}: "
+                            f"[LINK {i}] "
                             f"{name} "
                             f"-> {href}"
                         )
@@ -339,58 +254,58 @@ def main():
                     pass
 
             print()
-            print(
-                "Waiting briefly before closing..."
+            print("=" * 70)
+            print("SCREENSHOT")
+            print("=" * 70)
+
+            page.screenshot(
+                path="wairau_stage2.png",
+                full_page=True
             )
+
+            print(
+                "Saved: wairau_stage2.png"
+            )
+
+            print()
+            print("=" * 70)
+            print("WAITING")
+            print("=" * 70)
 
             time.sleep(3)
 
         except Exception as e:
 
             print()
-            print("=" * 60)
+            print("=" * 70)
             print("ERROR")
-            print("=" * 60)
+            print("=" * 70)
 
-            print(
-                repr(e)
-            )
+            print(repr(e))
 
             try:
 
                 page.screenshot(
-                    path="wairau_stage1_error.png",
+                    path="wairau_stage2_error.png",
                     full_page=True
                 )
 
                 print(
-                    "Error screenshot saved:"
-                )
-
-                print(
-                    "wairau_stage1_error.png"
+                    "Saved error screenshot."
                 )
 
             except Exception:
 
-                print(
-                    "Could not save error screenshot."
-                )
+                pass
 
         finally:
 
             browser.close()
 
             print()
-            print("=" * 60)
-            print("BROWSER CLOSED")
-            print("=" * 60)
-
-            print(
-                "STAGE 1 FINISHED"
-            )
-
-            print("=" * 60)
+            print("=" * 70)
+            print("STAGE 2 FINISHED")
+            print("=" * 70)
 
 
 if __name__ == "__main__":
