@@ -259,7 +259,7 @@ def check_jbhifi_wairau():
         try:
 
             # ==================================================
-            # 1. OPEN PRODUCT
+            # STEP 1 — OPEN PRODUCT PAGE
             # ==================================================
 
             print("Opening JB Hi-Fi product page...")
@@ -275,17 +275,46 @@ def check_jbhifi_wairau():
             print("Product page loaded.")
 
             # ==================================================
-            # 2. ADD TO CART
+            # STEP 2 — ADD TO CART
             # ==================================================
 
             print()
             print("Looking for Add to cart...")
 
-            add_to_cart = page.locator(
-                "button:has-text('Add to cart')"
-            ).first
+            add_to_cart_found = False
 
-            if not add_to_cart.is_visible(timeout=5000):
+            add_to_cart_selectors = [
+                "button:has-text('Add to cart')",
+                "button:has-text('Add to Cart')",
+                "text=Add to cart",
+                "text=Add to Cart",
+            ]
+
+            for selector in add_to_cart_selectors:
+
+                try:
+
+                    locator = page.locator(
+                        selector
+                    ).first
+
+                    if locator.is_visible(timeout=3000):
+
+                        print(
+                            f"Found Add to cart using: "
+                            f"{selector}"
+                        )
+
+                        locator.click()
+
+                        add_to_cart_found = True
+
+                        break
+
+                except Exception:
+                    pass
+
+            if not add_to_cart_found:
 
                 result["reason"] = (
                     "Could not find Add to cart button"
@@ -300,387 +329,156 @@ def check_jbhifi_wairau():
 
                 return result
 
-            print("Found Add to cart.")
-
-            add_to_cart.click()
-
             print("Added product to cart.")
 
-            page.wait_for_timeout(4000)
+            page.wait_for_timeout(5000)
 
             # ==================================================
-            # 3. OPEN CART
+            # STEP 3 — REVIEW CART
             # ==================================================
 
             print()
             print("Looking for Review cart...")
 
-            review_cart = page.get_by_text(
-                "Review cart",
-                exact=True,
-            ).first
+            review_cart_found = False
 
-            if review_cart.is_visible(timeout=5000):
+            review_selectors = [
+                "text=Review cart",
+                "text=Review Cart",
+                "text=View cart",
+                "text=View Cart",
+                "a[href*='/cart']",
+                "a[href*='cart']",
+            ]
 
-                print("Found Review cart.")
+            for selector in review_selectors:
 
-                review_cart.click()
+                try:
 
-            else:
+                    locator = page.locator(
+                        selector
+                    ).first
+
+                    if locator.is_visible(timeout=3000):
+
+                        print(
+                            f"Found cart link using: "
+                            f"{selector}"
+                        )
+
+                        locator.click()
+
+                        review_cart_found = True
+
+                        break
+
+                except Exception:
+                    pass
+
+            # If clicking did not work, directly go to cart.
+            if not review_cart_found:
 
                 print(
-                    "Review cart not found."
+                    "Review cart button not found."
                 )
 
                 print(
-                    "Opening cart directly..."
+                    "Opening /cart directly..."
                 )
 
-                page.goto(
-                    "https://www.jbhifi.co.nz/cart",
-                    wait_until="domcontentloaded",
-                    timeout=60000,
-                )
+                try:
+
+                    page.goto(
+                        "https://www.jbhifi.co.nz/cart",
+                        wait_until="domcontentloaded",
+                        timeout=60000,
+                    )
+
+                    review_cart_found = True
+
+                except Exception as e:
+
+                    print(
+                        f"Could not open cart: {e}"
+                    )
 
             page.wait_for_timeout(5000)
 
             print("Cart page loaded.")
 
             # ==================================================
-            # 4. FIND GETTING YOUR ITEM
+            # STEP 4 — CHECK STORE AVAILABILITY
             # ==================================================
 
             print()
             print(
-                "Looking for 'Getting your item'..."
+                "Looking for Check store availability..."
             )
 
-            getting = page.get_by_text(
-                "Getting your item",
-                exact=False,
-            ).first
+            availability_found = False
 
-            if not getting.is_visible(timeout=5000):
+            availability_selectors = [
+                "text=Check store availability",
+                "text=Check Store Availability",
+                "text=Check availability",
+                "text=Check Availability",
+                "button:has-text('Check store availability')",
+                "button:has-text('Check availability')",
+            ]
 
-                result["reason"] = (
-                    "Could not find Getting your item"
-                )
-
-                print(result["reason"])
-
-                page.screenshot(
-                    path="jbhifi_debug.png",
-                    full_page=True,
-                )
-
-                return result
-
-            print(
-                "Found 'Getting your item'."
-            )
-
-            # ==================================================
-            # 5. IDENTIFY THE CORRECT SECTION
-            # ==================================================
-
-            print()
-            print(
-                "Inspecting elements around "
-                "'Getting your item'..."
-            )
-
-            # Get the closest useful container.
-            container = getting.locator(
-                "xpath=ancestor::*[self::div or self::section]"
-            ).first
-
-            # Walk through several ancestors looking for
-            # one containing an input.
-            correct_container = None
-
-            for level in range(1, 8):
+            for selector in availability_selectors:
 
                 try:
 
-                    ancestor = getting.locator(
-                        "xpath="
-                        + "/.." * level
+                    locator = page.locator(
+                        selector
                     ).first
 
-                    inputs = ancestor.locator(
-                        "input"
-                    )
+                    if locator.is_visible(timeout=3000):
 
-                    count = inputs.count()
+                        print(
+                            f"Found availability control: "
+                            f"{selector}"
+                        )
 
-                    print(
-                        f"Ancestor level {level}: "
-                        f"{count} input(s)"
-                    )
+                        locator.click()
 
-                    if count > 0:
-
-                        correct_container = ancestor
+                        availability_found = True
 
                         break
 
                 except Exception:
                     pass
 
-            # ==================================================
-            # 6. FIND LOCATION INPUT INSIDE SECTION
-            # ==================================================
+            if not availability_found:
 
-            search_box = None
+                # Sometimes the availability section
+                # appears automatically.
 
-            if correct_container is not None:
+                current_text = get_page_text(page)
 
-                inputs = correct_container.locator(
-                    "input"
-                )
-
-                count = inputs.count()
-
-                print(
-                    f"Inputs inside selected section: "
-                    f"{count}"
-                )
-
-                for i in range(count):
-
-                    try:
-
-                        candidate = inputs.nth(i)
-
-                        if not candidate.is_visible(
-                            timeout=1000
-                        ):
-                            continue
-
-                        placeholder = (
-                            candidate.get_attribute(
-                                "placeholder"
-                            )
-                            or ""
-                        )
-
-                        aria_label = (
-                            candidate.get_attribute(
-                                "aria-label"
-                            )
-                            or ""
-                        )
-
-                        name = (
-                            candidate.get_attribute(
-                                "name"
-                            )
-                            or ""
-                        )
-
-                        input_id = (
-                            candidate.get_attribute(
-                                "id"
-                            )
-                            or ""
-                        )
-
-                        print(
-                            f"Section input {i}: "
-                            f"placeholder='{placeholder}', "
-                            f"aria='{aria_label}', "
-                            f"name='{name}', "
-                            f"id='{input_id}'"
-                        )
-
-                        # Reject the global product search.
-                        combined = (
-                            placeholder.lower()
-                            + " "
-                            + aria_label.lower()
-                            + " "
-                            + name.lower()
-                            + " "
-                            + input_id.lower()
-                        )
-
-                        if (
-                            "search products" in combined
-                            or
-                            "search product" in combined
-                        ):
-                            print(
-                                "Rejected global "
-                                "product search."
-                            )
-                            continue
-
-                        # Prefer anything suggesting location.
-                        location_words = [
-                            "postcode",
-                            "suburb",
-                            "store",
-                            "location",
-                            "address",
-                        ]
-
-                        if any(
-                            word in combined
-                            for word in location_words
-                        ):
-
-                            search_box = candidate
-
-                            print(
-                                "Selected location "
-                                "input."
-                            )
-
-                            break
-
-                        # If this is the only input inside
-                        # the Getting your item section,
-                        # use it.
-                        if count == 1:
-
-                            search_box = candidate
-
-                            print(
-                                "Selected the only "
-                                "input in the section."
-                            )
-
-                            break
-
-                    except Exception:
-                        pass
-
-            # ==================================================
-            # 7. SECOND METHOD:
-            # FIND INPUT BASED ON TEXT PROXIMITY
-            # ==================================================
-
-            if search_box is None:
-
-                print()
-                print(
-                    "Trying text-proximity search..."
-                )
-
-                all_inputs = page.locator(
-                    "input"
-                )
-
-                input_count = all_inputs.count()
-
-                for i in range(input_count):
-
-                    try:
-
-                        candidate = all_inputs.nth(i)
-
-                        if not candidate.is_visible(
-                            timeout=500
-                        ):
-                            continue
-
-                        # Get a large ancestor around the input.
-                        ancestor = candidate.locator(
-                            "xpath=ancestor::div[1]"
-                        ).first
-
-                        ancestor_text = (
-                            ancestor.inner_text()
-                            .lower()
-                        )
-
-                        # Skip main product search.
-                        if (
-                            "search products, brands"
-                            in ancestor_text
-                        ):
-                            continue
-
-                        # Look for location-related context.
-                        if (
-                            "getting your item"
-                            in ancestor_text
-                            or
-                            "delivery"
-                            in ancestor_text
-                            or
-                            "click & collect"
-                            in ancestor_text
-                            or
-                            "click and collect"
-                            in ancestor_text
-                            or
-                            "store"
-                            in ancestor_text
-                        ):
-
-                            search_box = candidate
-
-                            print(
-                                f"Selected input {i} "
-                                "based on surrounding text."
-                            )
-
-                            break
-
-                    except Exception:
-                        pass
-
-            # ==================================================
-            # 8. STOP IF WE CAN'T FIND THE RIGHT INPUT
-            # ==================================================
-
-            if search_box is None:
-
-                result["reason"] = (
-                    "Could not identify the Getting "
-                    "your item location input"
-                )
-
-                print()
-                print(result["reason"])
-
-                print()
-                print(
-                    "All visible inputs on page:"
-                )
-
-                all_inputs = page.locator(
-                    "input"
-                )
-
-                for i in range(
-                    all_inputs.count()
+                if (
+                    "store availability"
+                    in current_text
+                    or
+                    "postcode or suburb"
+                    in current_text
                 ):
 
-                    try:
+                    print(
+                        "Store availability section "
+                        "already visible."
+                    )
 
-                        candidate = all_inputs.nth(i)
+                    availability_found = True
 
-                        if not candidate.is_visible(
-                            timeout=300
-                        ):
-                            continue
+            if not availability_found:
 
-                        print(
-                            f"Input {i}: "
-                            f"placeholder="
-                            f"'{candidate.get_attribute('placeholder')}', "
-                            f"aria="
-                            f"'{candidate.get_attribute('aria-label')}', "
-                            f"name="
-                            f"'{candidate.get_attribute('name')}', "
-                            f"id="
-                            f"'{candidate.get_attribute('id')}'"
-                        )
+                result["reason"] = (
+                    "Could not find Check store availability"
+                )
 
-                    except Exception:
-                        pass
+                print(result["reason"])
 
                 page.screenshot(
                     path="jbhifi_debug.png",
@@ -688,77 +486,45 @@ def check_jbhifi_wairau():
                 )
 
                 return result
-
-            # ==================================================
-            # 9. ENTER WAIRAU
-            # ==================================================
-
-            print()
-            print(
-                "Entering Wairau..."
-            )
-
-            search_box.click()
-
-            search_box.fill(
-                "Wairau"
-            )
 
             page.wait_for_timeout(3000)
 
             # ==================================================
-            # 10. PRINT WHAT APPEARED
+            # STEP 5 — ENTER STORE SEARCH
             # ==================================================
 
             print()
             print(
-                "Checking page after entering Wairau..."
+                "Looking for postcode/suburb search..."
             )
 
-            body_text = page.locator(
-                "body"
-            ).inner_text()
+            search_box = None
 
-            print(
-                body_text[-5000:]
-            )
-
-            # ==================================================
-            # 11. CLICK CHECK AVAILABILITY
-            # ==================================================
-
-            print()
-            print(
-                "Looking for Check availability..."
-            )
-
-            check_button = None
-
-            selectors = [
-                "button:has-text('Check availability')",
-                "button:has-text('Check Availability')",
-                "text=Check availability",
-                "text=Check Availability",
-                "[aria-label*='Check availability']",
+            search_selectors = [
+                'input[placeholder*="postcode"]',
+                'input[placeholder*="Postcode"]',
+                'input[placeholder*="suburb"]',
+                'input[placeholder*="Suburb"]',
+                'input[placeholder*="postcode or suburb"]',
+                'input[placeholder*="postcode or suburb"]',
+                'input[type="search"]',
             ]
 
-            for selector in selectors:
+            for selector in search_selectors:
 
                 try:
 
-                    candidate = page.locator(
+                    locator = page.locator(
                         selector
                     ).first
 
-                    if candidate.is_visible(
-                        timeout=3000
-                    ):
+                    if locator.is_visible(timeout=2000):
 
-                        check_button = candidate
+                        search_box = locator
 
                         print(
-                            f"Found Check availability "
-                            f"using {selector}"
+                            f"Found store search box: "
+                            f"{selector}"
                         )
 
                         break
@@ -766,16 +532,13 @@ def check_jbhifi_wairau():
                 except Exception:
                     pass
 
-            if check_button is None:
+            if not search_box:
 
                 result["reason"] = (
-                    "Could not find Check availability "
-                    "after entering Wairau"
+                    "Could not find store search box"
                 )
 
-                print(
-                    result["reason"]
-                )
+                print(result["reason"])
 
                 page.screenshot(
                     path="jbhifi_debug.png",
@@ -784,39 +547,89 @@ def check_jbhifi_wairau():
 
                 return result
 
-            check_button.click()
+            # ==================================================
+            # STEP 6 — SEARCH FOR WAIRAU PARK
+            # ==================================================
 
             print(
-                "Clicked Check availability."
+                f"Searching for: {STORE_SEARCH}"
             )
 
-            page.wait_for_timeout(5000)
+            search_box.fill(STORE_SEARCH)
+
+            page.wait_for_timeout(2000)
+
+            # Try Enter.
+            try:
+                search_box.press("Enter")
+            except Exception:
+                pass
+
+            page.wait_for_timeout(4000)
 
             # ==================================================
-            # 12. FIND WAIRAU PARK
+            # STEP 7 — SELECT WAIRAU PARK
             # ==================================================
 
             print()
             print(
-                "Looking for Wairau Park..."
+                "Looking for Wairau Park result..."
             )
 
-            body_text = page.locator(
-                "body"
-            ).inner_text()
+            wairau_found = False
 
-            lower_text = body_text.lower()
+            wairau_selectors = [
+                "text=Wairau Park",
+                "text=Wairau",
+                "[aria-label*='Wairau Park']",
+                "[aria-label*='Wairau']",
+            ]
 
-            if "wairau park" not in lower_text:
+            for selector in wairau_selectors:
+
+                try:
+
+                    locator = page.locator(
+                        selector
+                    ).first
+
+                    if locator.is_visible(timeout=3000):
+
+                        print(
+                            f"Found Wairau using: "
+                            f"{selector}"
+                        )
+
+                        locator.click()
+
+                        wairau_found = True
+
+                        break
+
+                except Exception:
+                    pass
+
+            if not wairau_found:
+
+                # It may already be selected and displayed.
+                current_text = get_page_text(page)
+
+                if "wairau park" in current_text:
+
+                    print(
+                        "Wairau Park is already displayed."
+                    )
+
+                    wairau_found = True
+
+            if not wairau_found:
 
                 result["reason"] = (
-                    "Wairau Park did not appear "
-                    "after availability check"
+                    "Wairau Park was not found after "
+                    "store search"
                 )
 
-                print(
-                    result["reason"]
-                )
+                print(result["reason"])
 
                 page.screenshot(
                     path="jbhifi_debug.png",
@@ -825,92 +638,32 @@ def check_jbhifi_wairau():
 
                 return result
 
-            print(
-                "Wairau Park found."
-            )
+            page.wait_for_timeout(3000)
 
             # ==================================================
-            # 13. CLICK IN-STORE
+            # STEP 8 — READ STORE AVAILABILITY
             # ==================================================
 
             print()
             print(
-                "Looking for In-store..."
+                "Checking Wairau Park availability..."
             )
 
-            in_store = None
+            body_text = get_page_text(page)
 
-            selectors = [
-                "text=In-store",
-                "text=In store",
-                "button:has-text('In-store')",
-                "button:has-text('In store')",
-            ]
-
-            for selector in selectors:
-
-                try:
-
-                    candidate = page.locator(
-                        selector
-                    ).first
-
-                    if candidate.is_visible(
-                        timeout=3000
-                    ):
-
-                        in_store = candidate
-
-                        print(
-                            f"Found In-store "
-                            f"using {selector}"
-                        )
-
-                        break
-
-                except Exception:
-                    pass
-
-            if in_store is not None:
-
-                in_store.click()
-
-                print(
-                    "Clicked In-store."
-                )
-
-                page.wait_for_timeout(3000)
-
-            else:
-
-                print(
-                    "In-store button not found."
-                )
-
-            # ==================================================
-            # 14. READ RESULT
-            # ==================================================
-
-            body_text = page.locator(
-                "body"
-            ).inner_text()
-
-            lower_text = body_text.lower()
-
-            wairau_index = lower_text.find(
+            # Find the Wairau section.
+            wairau_position = body_text.find(
                 "wairau park"
             )
 
-            if wairau_index == -1:
+            if wairau_position == -1:
 
                 result["reason"] = (
-                    "Wairau Park disappeared "
-                    "before result could be read"
+                    "Wairau Park disappeared before "
+                    "availability could be read"
                 )
 
-                print(
-                    result["reason"]
-                )
+                print(result["reason"])
 
                 page.screenshot(
                     path="jbhifi_debug.png",
@@ -919,38 +672,25 @@ def check_jbhifi_wairau():
 
                 return result
 
-            start = max(
-                0,
-                wairau_index - 100
-            )
-
-            end = min(
-                len(lower_text),
-                wairau_index + 1800
-            )
-
-            wairau_section = lower_text[
-                start:end
+            # Only inspect the text near Wairau Park.
+            wairau_section = body_text[
+                wairau_position:
+                wairau_position + 1500
             ]
 
             print()
+            print("--- WAIRAU PARK SECTION ---")
             print(
-                "--- WAIRAU RESULT ---"
+                wairau_section[:1500]
             )
-
-            print(
-                wairau_section
-            )
-
-            print(
-                "--- END WAIRAU RESULT ---"
-            )
+            print("--- END WAIRAU SECTION ---")
+            print()
 
             # ==================================================
             # OUT OF STOCK
             # ==================================================
 
-            unavailable = [
+            unavailable_phrases = [
                 "sorry, it's unavailable",
                 "sorry, it’s unavailable",
                 "currently unavailable",
@@ -958,19 +698,15 @@ def check_jbhifi_wairau():
                 "unavailable",
             ]
 
-            for phrase in unavailable:
+            for phrase in unavailable_phrases:
 
                 if phrase in wairau_section:
 
-                    result["status"] = (
-                        "out_of_stock"
-                    )
-
+                    result["status"] = "out_of_stock"
                     result["stock"] = False
-
                     result["reason"] = (
-                        "Wairau Park explicitly "
-                        "says unavailable"
+                        "Wairau Park explicitly says "
+                        "unavailable"
                     )
 
                     print(
@@ -988,7 +724,7 @@ def check_jbhifi_wairau():
             # IN STOCK
             # ==================================================
 
-            available = [
+            available_phrases = [
                 "1 hour click & collect",
                 "1 hour click and collect",
                 "click & collect",
@@ -997,16 +733,12 @@ def check_jbhifi_wairau():
                 "in store",
             ]
 
-            for phrase in available:
+            for phrase in available_phrases:
 
                 if phrase in wairau_section:
 
-                    result["status"] = (
-                        "in_stock"
-                    )
-
+                    result["status"] = "in_stock"
                     result["stock"] = True
-
                     result["reason"] = (
                         "Wairau Park has "
                         "Click & Collect / "
@@ -1029,13 +761,10 @@ def check_jbhifi_wairau():
             # ==================================================
 
             result["status"] = "unknown"
-
             result["stock"] = False
-
             result["reason"] = (
-                "Wairau Park found but "
-                "availability could not "
-                "be determined"
+                "Wairau Park was found but its "
+                "availability could not be determined"
             )
 
             print(
@@ -1052,16 +781,12 @@ def check_jbhifi_wairau():
         except PlaywrightTimeoutError as e:
 
             result["status"] = "unknown"
-
             result["stock"] = False
-
             result["reason"] = (
                 f"JB Hi-Fi browser timeout: {e}"
             )
 
-            print(
-                result["reason"]
-            )
+            print(result["reason"])
 
             try:
                 page.screenshot(
@@ -1076,16 +801,12 @@ def check_jbhifi_wairau():
         except Exception as e:
 
             result["status"] = "unknown"
-
             result["stock"] = False
-
             result["reason"] = (
                 f"JB Hi-Fi browser error: {e}"
             )
 
-            print(
-                result["reason"]
-            )
+            print(result["reason"])
 
             try:
                 page.screenshot(
@@ -1100,6 +821,7 @@ def check_jbhifi_wairau():
         finally:
 
             browser.close()
+
 
 # ============================================================
 # OTHER RETAILERS
