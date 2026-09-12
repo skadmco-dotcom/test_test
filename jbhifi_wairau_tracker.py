@@ -89,7 +89,7 @@ def main():
             page.wait_for_timeout(2500)
 
             # --------------------------------------------------
-            # CLOSE CART
+            # CLOSE CART SLIDEOUT
             # --------------------------------------------------
 
             print()
@@ -97,82 +97,86 @@ def main():
             print("CLOSING CART SLIDEOUT")
             print("=" * 70)
 
-            # Try Escape several times because the cart slideout
-# can occasionally remain open.
+            slideout = page.locator(
+                '[data-testid="attach-slideout"]'
+            )
 
-for attempt in range(3):
+            # Try Escape up to three times.
+            for attempt in range(3):
 
-    page.keyboard.press("Escape")
-    page.wait_for_timeout(1000)
+                page.keyboard.press("Escape")
 
-    slideout = page.locator(
-        '[data-testid="attach-slideout"]'
-    )
+                page.wait_for_timeout(1000)
 
-    visible = (
-        slideout.count() > 0
-        and slideout.first.is_visible()
-    )
+                cart_visible = (
+                    slideout.count() > 0
+                    and slideout.first.is_visible()
+                )
 
-    print(
-        f"Cart visible after Escape attempt {attempt + 1}:",
-        visible
-    )
+                print(
+                    f"Cart visible after Escape "
+                    f"attempt {attempt + 1}:",
+                    cart_visible
+                )
 
-    if not visible:
-        break
+                if not cart_visible:
+                    break
 
-# If the slideout is still visible, try clicking its
-# close button directly.
+            # If Escape did not work, try the close
+            # button inside the cart directly.
+            if (
+                slideout.count() > 0
+                and slideout.first.is_visible()
+            ):
 
-if (
-    slideout.count() > 0
-    and slideout.first.is_visible()
-):
+                print(
+                    "Cart still open - "
+                    "looking for close button."
+                )
 
-    print("Cart still open - looking for close button.")
+                close_buttons = slideout.first.get_by_role(
+                    "button",
+                    name="Close"
+                )
 
-    close_buttons = slideout.first.get_by_role(
-        "button",
-        name="Close"
-    )
+                print(
+                    "Cart close buttons:",
+                    close_buttons.count()
+                )
 
-    print(
-        "Cart close buttons:",
-        close_buttons.count()
-    )
+                if close_buttons.count() > 0:
 
-    if close_buttons.count() > 0:
+                    close_buttons.first.click(
+                        force=True,
+                        timeout=10000
+                    )
 
-        close_buttons.first.click(
-            force=True,
-            timeout=10000
-        )
+                    page.wait_for_timeout(1500)
 
-        page.wait_for_timeout(1500)
+            # Final check
+            slideout = page.locator(
+                '[data-testid="attach-slideout"]'
+            )
 
-# Final check
+            cart_visible = (
+                slideout.count() > 0
+                and slideout.first.is_visible()
+            )
 
-slideout = page.locator(
-    '[data-testid="attach-slideout"]'
-)
+            print(
+                "FINAL cart visible:",
+                cart_visible
+            )
 
-cart_visible = (
-    slideout.count() > 0
-    and slideout.first.is_visible()
-)
+            if cart_visible:
 
-print(
-    "FINAL cart visible:",
-    cart_visible
-)
+                raise Exception(
+                    "Cart slideout could not be closed."
+                )
 
-if cart_visible:
-    raise Exception(
-        "Cart slideout could not be closed."
-    )
-
-print("✓ Cart successfully closed.")
+            print(
+                "✓ Cart successfully closed."
+            )
 
             # --------------------------------------------------
             # LOCATION FIELD
@@ -205,8 +209,6 @@ print("✓ Cart successfully closed.")
                 "✓ Location input clicked."
             )
 
-            # Type the location slowly so the website's
-            # autocomplete has time to react.
             location_input.first.fill(
                 "Wairau Park"
             )
@@ -215,6 +217,7 @@ print("✓ Cart successfully closed.")
                 "✓ Typed: Wairau Park"
             )
 
+            # Give autocomplete time to appear.
             page.wait_for_timeout(4000)
 
             # --------------------------------------------------
@@ -302,12 +305,8 @@ print("✓ Cart successfully closed.")
                         "data-testid"
                     )
 
-                    # Only print potentially useful buttons.
-                    if (
-                        text
-                        or aria
-                        or testid
-                    ):
+                    if text or aria or testid:
+
                         print(
                             f"[BUTTON {i}] "
                             f"text={text!r} "
@@ -319,7 +318,7 @@ print("✓ Cart successfully closed.")
                     pass
 
             # --------------------------------------------------
-            # VISIBLE LISTS / OPTIONS
+            # VISIBLE OPTIONS / SUGGESTIONS
             # --------------------------------------------------
 
             print()
@@ -381,7 +380,7 @@ print("✓ Cart successfully closed.")
                         pass
 
             # --------------------------------------------------
-            # PAGE TEXT
+            # PAGE TEXT AROUND WAIRAU
             # --------------------------------------------------
 
             print()
@@ -395,10 +394,19 @@ print("✓ Cart successfully closed.")
 
             lines = body_text.splitlines()
 
+            found_wairau = False
+
             for i, line in enumerate(lines):
 
                 if "wairau" in line.lower():
-                    start = max(0, i - 5)
+
+                    found_wairau = True
+
+                    start = max(
+                        0,
+                        i - 5
+                    )
+
                     end = min(
                         len(lines),
                         i + 10
@@ -409,6 +417,13 @@ print("✓ Cart successfully closed.")
                             lines[start:end]
                         )
                     )
+
+            if not found_wairau:
+
+                print(
+                    "No visible text containing "
+                    "'Wairau' was found."
+                )
 
             print()
             print("=" * 70)
