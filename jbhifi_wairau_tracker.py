@@ -6,14 +6,12 @@ PRODUCT_URL = (
     "ps5-playstation-5-pro-2tb-console"
 )
 
-WAIRAU_SEARCH = "Wairau Park"
-
 
 def main():
 
     print("=" * 70)
     print("JB HI-FI WAIRAU PS5 PRO TRACKER")
-    print("STAGE 6 - CLOSE CART SLIDEOUT")
+    print("STAGE 7 - INSPECT LOCATION UI")
     print("=" * 70)
 
     with sync_playwright() as p:
@@ -60,11 +58,6 @@ def main():
 
             page.wait_for_timeout(5000)
 
-            print(
-                "Page title:",
-                page.title()
-            )
-
             # ============================================================
             # ADD TO CART
             # ============================================================
@@ -81,15 +74,9 @@ def main():
             )
 
             print(
-                "Add to cart buttons found:",
+                "Add to cart buttons:",
                 add_buttons.count()
             )
-
-            if add_buttons.count() == 0:
-                print(
-                    "ERROR: Add to cart button not found."
-                )
-                return
 
             add_buttons.first.click(
                 timeout=10000
@@ -99,180 +86,40 @@ def main():
                 "✓ PS5 Pro added to cart."
             )
 
-            page.wait_for_timeout(3000)
+            page.wait_for_timeout(2500)
 
             # ============================================================
-            # CART SLIDEOUT
-            # ============================================================
-
-            print()
-            print("=" * 70)
-            print("CHECKING CART SLIDEOUT")
-            print("=" * 70)
-
-            slideout = page.locator(
-                '[data-testid="attach-slideout"]'
-            )
-
-            print(
-                "Cart slideout count:",
-                slideout.count()
-            )
-
-            if slideout.count() > 0:
-
-                print(
-                    "Cart slideout visible:",
-                    slideout.first.is_visible()
-                )
-
-            # ============================================================
-            # TRY ESCAPE
+            # CLOSE CART
             # ============================================================
 
             print()
             print("=" * 70)
-            print("CLOSING CART WITH ESCAPE")
+            print("CLOSING CART SLIDEOUT")
             print("=" * 70)
 
             page.keyboard.press("Escape")
 
             page.wait_for_timeout(1500)
 
-            if slideout.count() > 0:
+            slideout = page.locator(
+                '[data-testid="attach-slideout"]'
+            )
 
-                print(
-                    "Cart slideout visible after Escape:",
-                    slideout.first.is_visible()
+            print(
+                "Cart visible:",
+                (
+                    slideout.count() > 0
+                    and slideout.first.is_visible()
                 )
+            )
 
             # ============================================================
-            # IF STILL OPEN, INSPECT BUTTONS INSIDE SLIDEOUT
-            # ============================================================
-
-            if (
-                slideout.count() > 0
-                and slideout.first.is_visible()
-            ):
-
-                print()
-                print("=" * 70)
-                print("CART STILL OPEN - INSPECTING BUTTONS")
-                print("=" * 70)
-
-                slide_buttons = slideout.first.get_by_role(
-                    "button"
-                )
-
-                print(
-                    "Buttons inside cart slideout:",
-                    slide_buttons.count()
-                )
-
-                for i in range(
-                    slide_buttons.count()
-                ):
-
-                    try:
-
-                        button = slide_buttons.nth(i)
-
-                        print(
-                            f"[SLIDEOUT BUTTON {i}] "
-                            f"text={button.inner_text(
-                                timeout=1000
-                            )!r} "
-                            f"aria-label={button.get_attribute(
-                                'aria-label'
-                            )!r} "
-                            f"title={button.get_attribute(
-                                'title'
-                            )!r}"
-                        )
-
-                    except Exception:
-                        pass
-
-                # --------------------------------------------------------
-                # Look for common close buttons
-                # --------------------------------------------------------
-
-                close_candidates = [
-                    '[aria-label="Close"]',
-                    '[aria-label="close"]',
-                    'button[title="Close"]',
-                    'button[data-testid*="close"]'
-                ]
-
-                closed = False
-
-                for selector in close_candidates:
-
-                    try:
-
-                        close_button = slideout.first.locator(
-                            selector
-                        )
-
-                        if (
-                            close_button.count() > 0
-                            and close_button.first.is_visible()
-                        ):
-
-                            print(
-                                "Trying close button:",
-                                selector
-                            )
-
-                            close_button.first.click(
-                                timeout=5000
-                            )
-
-                            page.wait_for_timeout(1500)
-
-                            print(
-                                "✓ Close button clicked."
-                            )
-
-                            closed = True
-                            break
-
-                    except Exception as e:
-
-                        print(
-                            "Close attempt failed:",
-                            repr(e)
-                        )
-
-                if not closed:
-
-                    print(
-                        "No obvious close button found."
-                    )
-
-            # ============================================================
-            # FINAL SLIDEOUT CHECK
+            # LOCATION FIELD
             # ============================================================
 
             print()
             print("=" * 70)
-            print("FINAL CART SLIDEOUT CHECK")
-            print("=" * 70)
-
-            if slideout.count() > 0:
-
-                print(
-                    "Cart slideout visible:",
-                    slideout.first.is_visible()
-                )
-
-            # ============================================================
-            # LOCATION INPUT
-            # ============================================================
-
-            print()
-            print("=" * 70)
-            print("CHECKING LOCATION SEARCH")
+            print("CLICKING LOCATION SEARCH")
             print("=" * 70)
 
             location_input = page.locator(
@@ -280,228 +127,247 @@ def main():
             )
 
             print(
-                "Location fields:",
+                "Location input count:",
                 location_input.count()
             )
 
-            if location_input.count() == 0:
-                print(
-                    "ERROR: location-search-pdp not found."
-                )
-                return
-
             print(
-                "Location field visible:",
+                "Location input visible:",
                 location_input.first.is_visible()
             )
 
-            # ============================================================
-            # CLICK LOCATION FIELD
-            # ============================================================
+            location_input.first.click(
+                timeout=10000
+            )
 
-            if location_input.first.is_visible():
+            print(
+                "✓ Location input clicked."
+            )
 
-                print()
-                print("=" * 70)
-                print("CLICKING LOCATION SEARCH")
-                print("=" * 70)
-
-                location_input.first.click(
-                    timeout=10000
-                )
-
-                print(
-                    "✓ Location search clicked."
-                )
-
-                page.wait_for_timeout(2000)
-
-            else:
-
-                print(
-                    "ERROR: Location field is not visible."
-                )
-                return
+            # Give the UI time to animate/open
+            page.wait_for_timeout(3000)
 
             # ============================================================
-            # INSPECT STORE FIELD
+            # SCREENSHOT
+            # ============================================================
+
+            page.screenshot(
+                path="wairau_stage7_location_ui.png",
+                full_page=True
+            )
+
+            print(
+                "Saved: wairau_stage7_location_ui.png"
+            )
+
+            # ============================================================
+            # ALL INPUTS
             # ============================================================
 
             print()
             print("=" * 70)
-            print("CHECKING STORE AVAILABILITY FIELD")
+            print("ALL INPUTS AFTER LOCATION CLICK")
             print("=" * 70)
 
-            store_input = page.locator(
-                'input[name="store-availability-search"]'
+            inputs = page.locator("input")
+
+            print(
+                "Total inputs:",
+                inputs.count()
+            )
+
+            for i in range(inputs.count()):
+
+                try:
+
+                    inp = inputs.nth(i)
+
+                    print(
+                        f"[INPUT {i}] "
+                        f"name={inp.get_attribute('name')!r} "
+                        f"id={inp.get_attribute('id')!r} "
+                        f"type={inp.get_attribute('type')!r} "
+                        f"placeholder={inp.get_attribute('placeholder')!r} "
+                        f"aria-label={inp.get_attribute('aria-label')!r} "
+                        f"role={inp.get_attribute('role')!r} "
+                        f"visible={inp.is_visible()} "
+                        f"value={inp.input_value()!r}"
+                    )
+
+                except Exception:
+                    pass
+
+            # ============================================================
+            # ALL BUTTONS
+            # ============================================================
+
+            print()
+            print("=" * 70)
+            print("ALL BUTTONS AFTER LOCATION CLICK")
+            print("=" * 70)
+
+            buttons = page.get_by_role(
+                "button"
             )
 
             print(
-                "Store availability fields:",
-                store_input.count()
+                "Total buttons:",
+                buttons.count()
             )
 
-            if store_input.count() > 0:
+            for i in range(buttons.count()):
 
-                print(
-                    "Store field visible:",
-                    store_input.first.is_visible()
-                )
+                try:
+
+                    button = buttons.nth(i)
+
+                    if not button.is_visible():
+                        continue
+
+                    print(
+                        f"[BUTTON {i}] "
+                        f"text={button.inner_text(
+                            timeout=1000
+                        )!r} "
+                        f"aria-label={button.get_attribute(
+                            'aria-label'
+                        )!r} "
+                        f"title={button.get_attribute(
+                            'title'
+                        )!r} "
+                        f"data-testid={button.get_attribute(
+                            'data-testid'
+                        )!r}"
+                    )
+
+                except Exception:
+                    pass
 
             # ============================================================
-            # SEARCH WAIRAU
+            # ALL VISIBLE TEXT AROUND LOCATION
             # ============================================================
 
-            if (
-                store_input.count() > 0
-                and store_input.first.is_visible()
+            print()
+            print("=" * 70)
+            print("VISIBLE PAGE TEXT AFTER LOCATION CLICK")
+            print("=" * 70)
+
+            text = page.locator(
+                "body"
+            ).inner_text()
+
+            print(text)
+
+            # ============================================================
+            # ELEMENTS WITH LOCATION-RELATED ATTRIBUTES
+            # ============================================================
+
+            print()
+            print("=" * 70)
+            print("LOCATION-RELATED ELEMENTS")
+            print("=" * 70)
+
+            elements = page.locator(
+                '[id*="location"], '
+                '[name*="location"], '
+                '[data-testid*="location"], '
+                '[class*="location"]'
+            )
+
+            print(
+                "Location-related elements:",
+                elements.count()
+            )
+
+            for i in range(
+                min(elements.count(), 100)
             ):
 
-                print()
-                print("=" * 70)
-                print("SEARCHING FOR WAIRAU PARK")
-                print("=" * 70)
+                try:
 
-                store_input.first.fill(
-                    WAIRAU_SEARCH
-                )
+                    element = elements.nth(i)
 
-                print(
-                    "Entered:",
-                    WAIRAU_SEARCH
-                )
+                    if not element.is_visible():
+                        continue
 
-                page.wait_for_timeout(3000)
+                    print(
+                        f"[LOCATION {i}] "
+                        f"tag={element.evaluate(
+                            '(el) => el.tagName'
+                        )} "
+                        f"id={element.get_attribute('id')!r} "
+                        f"name={element.get_attribute('name')!r} "
+                        f"role={element.get_attribute('role')!r} "
+                        f"testid={element.get_attribute(
+                            'data-testid'
+                        )!r} "
+                        f"text={element.inner_text(
+                            timeout=1000
+                        )[:300]!r}"
+                    )
 
-                store_input.first.press(
-                    "Enter"
-                )
+                except Exception:
+                    pass
 
-                print(
-                    "✓ Pressed Enter."
-                )
+            # ============================================================
+            # DIALOGS / DRAWERS
+            # ============================================================
 
-                page.wait_for_timeout(5000)
+            print()
+            print("=" * 70)
+            print("DIALOGS / DRAWERS")
+            print("=" * 70)
 
-                # ========================================================
-                # RESULT
-                # ========================================================
+            dialogs = page.locator(
+                '[role="dialog"], '
+                '[aria-modal="true"], '
+                '[data-testid*="drawer"], '
+                '[data-testid*="modal"], '
+                '[data-testid*="slideout"]'
+            )
 
-                print()
-                print("=" * 70)
-                print("PAGE CONTENT AFTER WAIRAU SEARCH")
-                print("=" * 70)
+            print(
+                "Dialogs/drawers found:",
+                dialogs.count()
+            )
 
-                text = page.locator(
-                    "body"
-                ).inner_text()
+            for i in range(dialogs.count()):
 
-                print(text)
+                try:
 
-                print()
-                print("=" * 70)
-                print("RESULT KEYWORDS")
-                print("=" * 70)
+                    dialog = dialogs.nth(i)
 
-                lower_text = text.lower()
+                    if not dialog.is_visible():
+                        continue
 
-                keywords = [
-                    "wairau",
-                    "wairau park",
-                    "available",
-                    "unavailable",
-                    "in stock",
-                    "out of stock",
-                    "click & collect",
-                    "click and collect",
-                    "collect",
-                    "pickup",
-                    "pick up",
-                    "store",
-                    "review cart",
-                    "checkout"
-                ]
-
-                for keyword in keywords:
-
-                    if keyword.lower() in lower_text:
-
-                        print(
-                            "FOUND:",
-                            keyword
-                        )
-
-                    else:
-
-                        print(
-                            "NOT FOUND:",
-                            keyword
-                        )
-
-                # ========================================================
-                # WAIRAU ELEMENTS
-                # ========================================================
-
-                print()
-                print("=" * 70)
-                print("WAIRAU ELEMENTS")
-                print("=" * 70)
-
-                wairau_elements = page.get_by_text(
-                    "Wairau",
-                    exact=False
-                )
-
-                print(
-                    "Wairau elements:",
-                    wairau_elements.count()
-                )
-
-                for i in range(
-                    min(wairau_elements.count(), 30)
-                ):
+                    print(
+                        f"[DIALOG {i}] "
+                        f"role={dialog.get_attribute('role')!r} "
+                        f"testid={dialog.get_attribute(
+                            'data-testid'
+                        )!r}"
+                    )
 
                     try:
 
-                        element = (
-                            wairau_elements.nth(i)
-                        )
-
                         print(
-                            f"[WAIRAU {i}] "
-                            f"{element.inner_text(
+                            dialog.inner_text(
                                 timeout=1000
-                            )}"
+                            )[:3000]
                         )
 
                     except Exception:
                         pass
 
-                # ========================================================
-                # SCREENSHOT
-                # ========================================================
+                except Exception:
+                    pass
 
-                page.screenshot(
-                    path="wairau_stage6_result.png",
-                    full_page=True
-                )
+            print()
+            print("=" * 70)
+            print("STAGE 7 INSPECTION COMPLETE")
+            print("=" * 70)
 
-                print(
-                    "Saved: wairau_stage6_result.png"
-                )
-
-            else:
-
-                print()
-                print(
-                    "ERROR: Store availability field "
-                    "is still hidden."
-                )
-
-                page.screenshot(
-                    path="wairau_stage6_error.png",
-                    full_page=True
-                )
+            time.sleep(5)
 
         except Exception as e:
 
@@ -517,12 +383,12 @@ def main():
             try:
 
                 page.screenshot(
-                    path="wairau_stage6_error.png",
+                    path="wairau_stage7_error.png",
                     full_page=True
                 )
 
                 print(
-                    "Saved: wairau_stage6_error.png"
+                    "Saved: wairau_stage7_error.png"
                 )
 
             except Exception:
@@ -534,7 +400,7 @@ def main():
 
             print()
             print("=" * 70)
-            print("STAGE 6 FINISHED")
+            print("STAGE 7 FINISHED")
             print("=" * 70)
 
 
