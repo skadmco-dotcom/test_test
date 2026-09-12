@@ -11,7 +11,7 @@ def main():
 
     print("=" * 70)
     print("JB HI-FI WAIRAU PS5 PRO TRACKER")
-    print("STAGE 7 - INSPECT LOCATION UI")
+    print("STAGE 8 - TYPE WAIRAU PARK")
     print("=" * 70)
 
     with sync_playwright() as p:
@@ -35,9 +35,9 @@ def main():
 
         try:
 
-            # ============================================================
+            # --------------------------------------------------
             # OPEN PRODUCT
-            # ============================================================
+            # --------------------------------------------------
 
             print()
             print("=" * 70)
@@ -58,9 +58,9 @@ def main():
 
             page.wait_for_timeout(5000)
 
-            # ============================================================
+            # --------------------------------------------------
             # ADD TO CART
-            # ============================================================
+            # --------------------------------------------------
 
             print()
             print("=" * 70)
@@ -88,9 +88,9 @@ def main():
 
             page.wait_for_timeout(2500)
 
-            # ============================================================
+            # --------------------------------------------------
             # CLOSE CART
-            # ============================================================
+            # --------------------------------------------------
 
             print()
             print("=" * 70)
@@ -113,13 +113,13 @@ def main():
                 )
             )
 
-            # ============================================================
+            # --------------------------------------------------
             # LOCATION FIELD
-            # ============================================================
+            # --------------------------------------------------
 
             print()
             print("=" * 70)
-            print("CLICKING LOCATION SEARCH")
+            print("ENTERING WAIRAU PARK")
             print("=" * 70)
 
             location_input = page.locator(
@@ -144,29 +144,38 @@ def main():
                 "✓ Location input clicked."
             )
 
-            # Give the UI time to animate/open
-            page.wait_for_timeout(3000)
+            # Type the location slowly so the website's
+            # autocomplete has time to react.
+            location_input.first.fill(
+                "Wairau Park"
+            )
 
-            # ============================================================
+            print(
+                "✓ Typed: Wairau Park"
+            )
+
+            page.wait_for_timeout(4000)
+
+            # --------------------------------------------------
             # SCREENSHOT
-            # ============================================================
+            # --------------------------------------------------
 
             page.screenshot(
-                path="wairau_stage7_location_ui.png",
+                path="wairau_stage8_suggestions.png",
                 full_page=True
             )
 
             print(
-                "Saved: wairau_stage7_location_ui.png"
+                "Saved: wairau_stage8_suggestions.png"
             )
 
-            # ============================================================
-            # ALL INPUTS
-            # ============================================================
+            # --------------------------------------------------
+            # INPUTS
+            # --------------------------------------------------
 
             print()
             print("=" * 70)
-            print("ALL INPUTS AFTER LOCATION CLICK")
+            print("INPUTS AFTER TYPING WAIRAU PARK")
             print("=" * 70)
 
             inputs = page.locator("input")
@@ -182,37 +191,33 @@ def main():
 
                     inp = inputs.nth(i)
 
+                    if not inp.is_visible():
+                        continue
+
                     print(
                         f"[INPUT {i}] "
                         f"name={inp.get_attribute('name')!r} "
                         f"id={inp.get_attribute('id')!r} "
                         f"type={inp.get_attribute('type')!r} "
                         f"placeholder={inp.get_attribute('placeholder')!r} "
-                        f"aria-label={inp.get_attribute('aria-label')!r} "
                         f"role={inp.get_attribute('role')!r} "
-                        f"visible={inp.is_visible()} "
                         f"value={inp.input_value()!r}"
                     )
 
                 except Exception:
                     pass
 
-            # ============================================================
-            # ALL BUTTONS
-            # ============================================================
+            # --------------------------------------------------
+            # VISIBLE BUTTONS
+            # --------------------------------------------------
 
             print()
             print("=" * 70)
-            print("ALL BUTTONS AFTER LOCATION CLICK")
+            print("VISIBLE BUTTONS")
             print("=" * 70)
 
             buttons = page.get_by_role(
                 "button"
-            )
-
-            print(
-                "Total buttons:",
-                buttons.count()
             )
 
             for i in range(buttons.count()):
@@ -224,150 +229,132 @@ def main():
                     if not button.is_visible():
                         continue
 
-                    print(
-                        f"[BUTTON {i}] "
-                        f"text={button.inner_text(
-                            timeout=1000
-                        )!r} "
-                        f"aria-label={button.get_attribute(
-                            'aria-label'
-                        )!r} "
-                        f"title={button.get_attribute(
-                            'title'
-                        )!r} "
-                        f"data-testid={button.get_attribute(
-                            'data-testid'
-                        )!r}"
+                    text = button.inner_text(
+                        timeout=1000
+                    ).strip()
+
+                    aria = button.get_attribute(
+                        "aria-label"
                     )
+
+                    testid = button.get_attribute(
+                        "data-testid"
+                    )
+
+                    # Only print potentially useful buttons.
+                    if (
+                        text
+                        or aria
+                        or testid
+                    ):
+                        print(
+                            f"[BUTTON {i}] "
+                            f"text={text!r} "
+                            f"aria-label={aria!r} "
+                            f"data-testid={testid!r}"
+                        )
 
                 except Exception:
                     pass
 
-            # ============================================================
-            # ALL VISIBLE TEXT AROUND LOCATION
-            # ============================================================
+            # --------------------------------------------------
+            # VISIBLE LISTS / OPTIONS
+            # --------------------------------------------------
 
             print()
             print("=" * 70)
-            print("VISIBLE PAGE TEXT AFTER LOCATION CLICK")
+            print("VISIBLE OPTIONS / SUGGESTIONS")
             print("=" * 70)
 
-            text = page.locator(
-                "body"
-            ).inner_text()
+            option_selectors = [
+                '[role="option"]',
+                '[role="listbox"]',
+                '[role="menu"]',
+                'li',
+                '[data-testid*="suggest"]',
+                '[data-testid*="location"]'
+            ]
 
-            print(text)
+            seen = set()
 
-            # ============================================================
-            # ELEMENTS WITH LOCATION-RELATED ATTRIBUTES
-            # ============================================================
+            for selector in option_selectors:
 
-            print()
-            print("=" * 70)
-            print("LOCATION-RELATED ELEMENTS")
-            print("=" * 70)
+                elements = page.locator(
+                    selector
+                )
 
-            elements = page.locator(
-                '[id*="location"], '
-                '[name*="location"], '
-                '[data-testid*="location"], '
-                '[class*="location"]'
-            )
-
-            print(
-                "Location-related elements:",
-                elements.count()
-            )
-
-            for i in range(
-                min(elements.count(), 100)
-            ):
-
-                try:
-
-                    element = elements.nth(i)
-
-                    if not element.is_visible():
-                        continue
-
-                    print(
-                        f"[LOCATION {i}] "
-                        f"tag={element.evaluate(
-                            '(el) => el.tagName'
-                        )} "
-                        f"id={element.get_attribute('id')!r} "
-                        f"name={element.get_attribute('name')!r} "
-                        f"role={element.get_attribute('role')!r} "
-                        f"testid={element.get_attribute(
-                            'data-testid'
-                        )!r} "
-                        f"text={element.inner_text(
-                            timeout=1000
-                        )[:300]!r}"
-                    )
-
-                except Exception:
-                    pass
-
-            # ============================================================
-            # DIALOGS / DRAWERS
-            # ============================================================
-
-            print()
-            print("=" * 70)
-            print("DIALOGS / DRAWERS")
-            print("=" * 70)
-
-            dialogs = page.locator(
-                '[role="dialog"], '
-                '[aria-modal="true"], '
-                '[data-testid*="drawer"], '
-                '[data-testid*="modal"], '
-                '[data-testid*="slideout"]'
-            )
-
-            print(
-                "Dialogs/drawers found:",
-                dialogs.count()
-            )
-
-            for i in range(dialogs.count()):
-
-                try:
-
-                    dialog = dialogs.nth(i)
-
-                    if not dialog.is_visible():
-                        continue
-
-                    print(
-                        f"[DIALOG {i}] "
-                        f"role={dialog.get_attribute('role')!r} "
-                        f"testid={dialog.get_attribute(
-                            'data-testid'
-                        )!r}"
-                    )
+                for i in range(
+                    min(elements.count(), 100)
+                ):
 
                     try:
 
+                        element = elements.nth(i)
+
+                        if not element.is_visible():
+                            continue
+
+                        text = element.inner_text(
+                            timeout=1000
+                        ).strip()
+
+                        if not text:
+                            continue
+
+                        key = (
+                            selector,
+                            text[:500]
+                        )
+
+                        if key in seen:
+                            continue
+
+                        seen.add(key)
+
                         print(
-                            dialog.inner_text(
-                                timeout=1000
-                            )[:3000]
+                            f"[{selector}] "
+                            f"{text[:500]!r}"
                         )
 
                     except Exception:
                         pass
 
-                except Exception:
-                    pass
+            # --------------------------------------------------
+            # PAGE TEXT
+            # --------------------------------------------------
 
             print()
             print("=" * 70)
-            print("STAGE 7 INSPECTION COMPLETE")
+            print("PAGE TEXT AROUND LOCATION")
             print("=" * 70)
 
-            time.sleep(5)
+            body_text = page.locator(
+                "body"
+            ).inner_text()
+
+            lines = body_text.splitlines()
+
+            for i, line in enumerate(lines):
+
+                if "wairau" in line.lower():
+                    start = max(0, i - 5)
+                    end = min(
+                        len(lines),
+                        i + 10
+                    )
+
+                    print(
+                        "\n".join(
+                            lines[start:end]
+                        )
+                    )
+
+            print()
+            print("=" * 70)
+            print("STAGE 8 COMPLETE")
+            print("=" * 70)
+
+            time.sleep(3)
 
         except Exception as e:
 
@@ -383,12 +370,12 @@ def main():
             try:
 
                 page.screenshot(
-                    path="wairau_stage7_error.png",
+                    path="wairau_stage8_error.png",
                     full_page=True
                 )
 
                 print(
-                    "Saved: wairau_stage7_error.png"
+                    "Saved: wairau_stage8_error.png"
                 )
 
             except Exception:
@@ -400,7 +387,7 @@ def main():
 
             print()
             print("=" * 70)
-            print("STAGE 7 FINISHED")
+            print("STAGE 8 FINISHED")
             print("=" * 70)
 
 
