@@ -6,12 +6,14 @@ PRODUCT_URL = (
     "ps5-playstation-5-pro-2tb-console"
 )
 
+Wairau_SEARCH = "Wairau Park"
+
 
 def main():
 
     print("=" * 70)
     print("JB HI-FI WAIRAU PS5 PRO TRACKER")
-    print("STAGE 2 - CART / STORE INVESTIGATION")
+    print("STAGE 3 - FIND WAIRAU PARK")
     print("=" * 70)
 
     with sync_playwright() as p:
@@ -35,9 +37,13 @@ def main():
 
         try:
 
+            # --------------------------------------------------
+            # OPEN PRODUCT
+            # --------------------------------------------------
+
             print()
             print("=" * 70)
-            print("OPENING PRODUCT PAGE")
+            print("OPENING PS5 PRO")
             print("=" * 70)
 
             response = page.goto(
@@ -47,232 +53,324 @@ def main():
             )
 
             if response:
-                print("HTTP status:", response.status)
+                print(
+                    "HTTP status:",
+                    response.status
+                )
 
             page.wait_for_timeout(5000)
 
-            print("Page title:", page.title())
-            print("URL:", page.url)
+            print(
+                "Page title:",
+                page.title()
+            )
+
+            # --------------------------------------------------
+            # ADD TO CART
+            # --------------------------------------------------
 
             print()
             print("=" * 70)
-            print("CLICKING ADD TO CART")
+            print("ADDING PS5 PRO TO CART")
             print("=" * 70)
 
-            add_to_cart = page.get_by_role(
+            add_buttons = page.get_by_role(
                 "button",
                 name="Add to cart",
                 exact=False
             )
 
-            count = add_to_cart.count()
+            print(
+                "Add to cart buttons:",
+                add_buttons.count()
+            )
 
-            print("Add to cart buttons found:", count)
+            if add_buttons.count() == 0:
+                print(
+                    "ERROR: Add to cart not found."
+                )
+                return
 
-            if count == 0:
+            add_buttons.first.click(
+                timeout=10000
+            )
 
-                print("NO ADD TO CART BUTTON FOUND.")
+            print(
+                "✓ PS5 Pro added to cart."
+            )
+
+            # Wait for cart drawer / modal
+            page.wait_for_timeout(3000)
+
+            # --------------------------------------------------
+            # FIND POSTCODE / SUBURB FIELD
+            # --------------------------------------------------
+
+            print()
+            print("=" * 70)
+            print("LOOKING FOR POSTCODE / SUBURB FIELD")
+            print("=" * 70)
+
+            inputs = page.locator(
+                "input"
+            )
+
+            input_count = inputs.count()
+
+            print(
+                "Inputs found:",
+                input_count
+            )
+
+            for i in range(input_count):
+
+                try:
+
+                    inp = inputs.nth(i)
+
+                    placeholder = (
+                        inp.get_attribute(
+                            "placeholder"
+                        )
+                    )
+
+                    aria = (
+                        inp.get_attribute(
+                            "aria-label"
+                        )
+                    )
+
+                    name = (
+                        inp.get_attribute(
+                            "name"
+                        )
+                    )
+
+                    value = (
+                        inp.get_attribute(
+                            "value"
+                        )
+                    )
+
+                    print(
+                        f"INPUT {i}: "
+                        f"placeholder={placeholder!r} "
+                        f"aria={aria!r} "
+                        f"name={name!r} "
+                        f"value={value!r}"
+                    )
+
+                except Exception:
+
+                    pass
+
+            # --------------------------------------------------
+            # FIND SEARCH FIELD
+            # --------------------------------------------------
+
+            search_input = None
+
+            for i in range(input_count):
+
+                try:
+
+                    inp = inputs.nth(i)
+
+                    placeholder = (
+                        inp.get_attribute(
+                            "placeholder"
+                        )
+                        or ""
+                    ).lower()
+
+                    aria = (
+                        inp.get_attribute(
+                            "aria-label"
+                        )
+                        or ""
+                    ).lower()
+
+                    name = (
+                        inp.get_attribute(
+                            "name"
+                        )
+                        or ""
+                    ).lower()
+
+                    combined = (
+                        placeholder
+                        + " "
+                        + aria
+                        + " "
+                        + name
+                    )
+
+                    if (
+                        "postcode" in combined
+                        or "suburb" in combined
+                    ):
+
+                        search_input = inp
+
+                        print(
+                            "✓ Found location input:"
+                        )
+
+                        print(
+                            "placeholder:",
+                            placeholder
+                        )
+
+                        print(
+                            "aria-label:",
+                            aria
+                        )
+
+                        break
+
+                except Exception:
+
+                    pass
+
+            if search_input is None:
+
+                print()
+                print(
+                    "✗ Could not automatically "
+                    "identify the location field."
+                )
 
             else:
 
-                print("Add to cart found.")
+                # --------------------------------------------------
+                # ENTER WAIRAU PARK
+                # --------------------------------------------------
 
-                if add_to_cart.first.is_visible():
+                print()
+                print("=" * 70)
+                print("ENTERING WAIRAU PARK")
+                print("=" * 70)
 
-                    print("Button is visible.")
-                    print("Clicking...")
+                search_input.fill(
+                    Wairau_SEARCH
+                )
 
-                    add_to_cart.first.click(
-                        timeout=10000
+                print(
+                    "Entered:",
+                    Wairau_SEARCH
+                )
+
+                page.wait_for_timeout(
+                    3000
+                )
+
+                # --------------------------------------------------
+                # PRINT AUTOCOMPLETE OPTIONS
+                # --------------------------------------------------
+
+                print()
+                print("=" * 70)
+                print("CHECKING LOCATION OPTIONS")
+                print("=" * 70)
+
+                body_text = page.locator(
+                    "body"
+                ).inner_text()
+
+                print(
+                    body_text
+                )
+
+                # --------------------------------------------------
+                # LOOK FOR WAIRAU PARK
+                # --------------------------------------------------
+
+                if "Wairau Park" in body_text:
+
+                    print()
+                    print(
+                        "✓ WAIRAU PARK FOUND "
+                        "IN PAGE CONTENT."
                     )
 
-                    print("Add to cart clicked.")
+                    print()
+                    print(
+                        "Looking for clickable "
+                        "Wairau Park option..."
+                    )
 
-                    page.wait_for_timeout(5000)
+                    candidates = page.get_by_text(
+                        "Wairau Park",
+                        exact=False
+                    )
 
-                else:
+                    candidate_count = (
+                        candidates.count()
+                    )
 
                     print(
-                        "Add to cart exists "
-                        "but is not visible."
+                        "Wairau candidates:",
+                        candidate_count
                     )
 
-            print()
-            print("=" * 70)
-            print("CURRENT PAGE")
-            print("=" * 70)
-
-            print("URL:", page.url)
-            print("TITLE:", page.title())
-
-            print()
-            print("=" * 70)
-            print("FULL VISIBLE PAGE TEXT")
-            print("=" * 70)
-
-            text = page.locator(
-                "body"
-            ).inner_text()
-
-            print(text)
-
-            print()
-            print("=" * 70)
-            print("RELEVANT TEXT SEARCH")
-            print("=" * 70)
-
-            keywords = [
-                "Wairau",
-                "Wairau Park",
-                "Getting your item",
-                "pickup",
-                "pick up",
-                "click",
-                "collect",
-                "collection",
-                "delivery",
-                "cart",
-                "review cart",
-                "checkout",
-                "available",
-                "unavailable",
-                "store"
-            ]
-
-            lower_text = text.lower()
-
-            for keyword in keywords:
-
-                if keyword.lower() in lower_text:
-
-                    print(
-                        "FOUND:",
-                        keyword
-                    )
-
-                else:
-
-                    print(
-                        "NOT FOUND:",
-                        keyword
-                    )
-
-            print()
-            print("=" * 70)
-            print("ALL BUTTONS")
-            print("=" * 70)
-
-            buttons = page.get_by_role(
-                "button"
-            )
-
-            button_count = buttons.count()
-
-            print(
-                "Number of buttons:",
-                button_count
-            )
-
-            for i in range(button_count):
-
-                try:
-
-                    button = buttons.nth(i)
-
-                    name = button.inner_text(
-                        timeout=1000
-                    ).strip()
-
-                    if name:
-
-                        print(
-                            f"[BUTTON {i}] {name}"
-                        )
-
-                except Exception:
-
-                    pass
-
-            print()
-            print("=" * 70)
-            print("RELEVANT LINKS")
-            print("=" * 70)
-
-            links = page.get_by_role(
-                "link"
-            )
-
-            link_count = links.count()
-
-            print(
-                "Number of links:",
-                link_count
-            )
-
-            relevant_words = [
-                "cart",
-                "checkout",
-                "store",
-                "pickup",
-                "collect",
-                "wairau"
-            ]
-
-            for i in range(link_count):
-
-                try:
-
-                    link = links.nth(i)
-
-                    name = link.inner_text(
-                        timeout=1000
-                    ).strip()
-
-                    href = link.get_attribute(
-                        "href"
-                    )
-
-                    combined = (
-                        str(name)
-                        + " "
-                        + str(href)
-                    ).lower()
-
-                    if any(
-                        word in combined
-                        for word in relevant_words
+                    for i in range(
+                        candidate_count
                     ):
 
-                        print(
-                            f"[LINK {i}] "
-                            f"{name} "
-                            f"-> {href}"
-                        )
+                        try:
 
-                except Exception:
+                            candidate = (
+                                candidates.nth(i)
+                            )
 
-                    pass
+                            print(
+                                f"Candidate {i}:",
+                                candidate.inner_text(
+                                    timeout=1000
+                                )
+                            )
+
+                            print(
+                                "Visible:",
+                                candidate.is_visible()
+                            )
+
+                        except Exception:
+
+                            pass
+
+                else:
+
+                    print()
+                    print(
+                        "✗ Wairau Park was "
+                        "not found in page content."
+                    )
+
+            # --------------------------------------------------
+            # SCREENSHOT
+            # --------------------------------------------------
 
             print()
             print("=" * 70)
-            print("SCREENSHOT")
+            print("SAVING STAGE 3 SCREENSHOT")
             print("=" * 70)
 
             page.screenshot(
-                path="wairau_stage2.png",
+                path="wairau_stage3.png",
                 full_page=True
             )
 
             print(
-                "Saved: wairau_stage2.png"
+                "Saved: wairau_stage3.png"
             )
 
             print()
-            print("=" * 70)
-            print("WAITING")
-            print("=" * 70)
+            print(
+                "Keeping browser open briefly..."
+            )
 
-            time.sleep(3)
+            time.sleep(5)
 
         except Exception as e:
 
@@ -281,17 +379,20 @@ def main():
             print("ERROR")
             print("=" * 70)
 
-            print(repr(e))
+            print(
+                repr(e)
+            )
 
             try:
 
                 page.screenshot(
-                    path="wairau_stage2_error.png",
+                    path="wairau_stage3_error.png",
                     full_page=True
                 )
 
                 print(
-                    "Saved error screenshot."
+                    "Saved: "
+                    "wairau_stage3_error.png"
                 )
 
             except Exception:
@@ -304,7 +405,7 @@ def main():
 
             print()
             print("=" * 70)
-            print("STAGE 2 FINISHED")
+            print("STAGE 3 FINISHED")
             print("=" * 70)
 
 
