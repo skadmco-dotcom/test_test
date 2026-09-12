@@ -13,7 +13,7 @@ def main():
 
     print("=" * 70)
     print("JB HI-FI WAIRAU PS5 PRO TRACKER")
-    print("STAGE 3 - SEARCH WAIRAU PARK")
+    print("STAGE 4 - OPEN STORE SEARCH + SEARCH WAIRAU PARK")
     print("=" * 70)
 
     with sync_playwright() as p:
@@ -37,9 +37,9 @@ def main():
 
         try:
 
-            # ==================================================
-            # OPEN PRODUCT PAGE
-            # ==================================================
+            # ============================================================
+            # OPEN PRODUCT
+            # ============================================================
 
             print()
             print("=" * 70)
@@ -65,17 +65,15 @@ def main():
                 page.title()
             )
 
-            # ==================================================
-            # ADD PS5 PRO TO CART
-            # ==================================================
+            # ============================================================
+            # ADD TO CART
+            # ============================================================
 
             print()
             print("=" * 70)
             print("ADDING PS5 PRO TO CART")
             print("=" * 70)
 
-            # The first Add to cart button is the
-            # PS5 Pro product button.
             add_buttons = page.get_by_role(
                 "button",
                 name="Add to cart",
@@ -88,11 +86,9 @@ def main():
             )
 
             if add_buttons.count() == 0:
-
                 print(
                     "ERROR: Add to cart button not found."
                 )
-
                 return
 
             add_buttons.first.click(
@@ -105,13 +101,97 @@ def main():
 
             page.wait_for_timeout(3000)
 
-            # ==================================================
-            # FIND STORE AVAILABILITY FIELD
-            # ==================================================
+            # ============================================================
+            # PRINT STORE AVAILABILITY TEXT
+            # ============================================================
 
             print()
             print("=" * 70)
-            print("FINDING STORE AVAILABILITY FIELD")
+            print("LOOKING FOR STORE AVAILABILITY")
+            print("=" * 70)
+
+            body_text = page.locator(
+                "body"
+            ).inner_text()
+
+            print(body_text)
+
+            # ============================================================
+            # CLICK "ENTER POSTCODE OR SUBURB"
+            # ============================================================
+
+            print()
+            print("=" * 70)
+            print("OPENING STORE SEARCH")
+            print("=" * 70)
+
+            postcode_text = page.get_by_text(
+                "Enter postcode or suburb",
+                exact=True
+            )
+
+            print(
+                "Enter postcode/suburb elements:",
+                postcode_text.count()
+            )
+
+            if postcode_text.count() > 0:
+
+                try:
+
+                    postcode_text.first.click(
+                        timeout=10000
+                    )
+
+                    print(
+                        "✓ Clicked 'Enter postcode or suburb'."
+                    )
+
+                except Exception as e:
+
+                    print(
+                        "Text click failed:",
+                        repr(e)
+                    )
+
+                    # Try clicking the parent element
+                    try:
+
+                        postcode_text.first.locator(
+                            ".."
+                        ).click(
+                            timeout=10000
+                        )
+
+                        print(
+                            "✓ Clicked parent of "
+                            "'Enter postcode or suburb'."
+                        )
+
+                    except Exception as e2:
+
+                        print(
+                            "Parent click also failed:",
+                            repr(e2)
+                        )
+
+            else:
+
+                print(
+                    "ERROR: 'Enter postcode or suburb' "
+                    "was not found."
+                )
+
+            # Give the UI time to open
+            page.wait_for_timeout(2000)
+
+            # ============================================================
+            # FIND STORE SEARCH INPUT
+            # ============================================================
+
+            print()
+            print("=" * 70)
+            print("FINDING STORE SEARCH INPUT")
             print("=" * 70)
 
             search_input = page.locator(
@@ -126,28 +206,86 @@ def main():
             )
 
             if count == 0:
-
                 print(
-                    "ERROR: Store availability "
-                    "search field not found."
+                    "ERROR: Store availability search "
+                    "field not found."
                 )
-
                 return
 
             print(
                 "✓ Store availability search "
-                "field found."
+                "field exists."
             )
 
-            # ==================================================
-            # ENTER WAIRAU PARK
-            # ==================================================
+            # Check visibility
+            print(
+                "Field visible:",
+                search_input.first.is_visible()
+            )
+
+            # ============================================================
+            # SEARCH WAIRAU PARK
+            # ============================================================
 
             print()
             print("=" * 70)
             print("SEARCHING FOR WAIRAU PARK")
             print("=" * 70)
 
+            # Wait until visible
+            try:
+
+                search_input.first.wait_for(
+                    state="visible",
+                    timeout=10000
+                )
+
+                print(
+                    "✓ Search field is now visible."
+                )
+
+            except Exception as e:
+
+                print(
+                    "ERROR: Search field did not "
+                    "become visible."
+                )
+
+                print(
+                    repr(e)
+                )
+
+                # Print all inputs for debugging
+                inputs = page.locator("input")
+
+                print()
+                print("CURRENT INPUTS:")
+
+                for i in range(inputs.count()):
+
+                    try:
+
+                        inp = inputs.nth(i)
+
+                        print(
+                            f"INPUT {i}: "
+                            f"name={inp.get_attribute('name')!r} "
+                            f"type={inp.get_attribute('type')!r} "
+                            f"visible={inp.is_visible()} "
+                            f"value={inp.input_value()!r}"
+                        )
+
+                    except Exception:
+                        pass
+
+                page.screenshot(
+                    path="wairau_stage4_error.png",
+                    full_page=True
+                )
+
+                return
+
+            # Fill the field
             search_input.first.fill(
                 WAIRAU_SEARCH
             )
@@ -157,15 +295,8 @@ def main():
                 WAIRAU_SEARCH
             )
 
-            # Give the website time to generate
-            # the autocomplete/search results.
             page.wait_for_timeout(3000)
 
-            # ==================================================
-            # PRESS ENTER
-            # ==================================================
-
-            print()
             print(
                 "Pressing Enter..."
             )
@@ -176,9 +307,9 @@ def main():
 
             page.wait_for_timeout(5000)
 
-            # ==================================================
-            # PRINT PAGE TEXT
-            # ==================================================
+            # ============================================================
+            # PRINT RESULTS
+            # ============================================================
 
             print()
             print("=" * 70)
@@ -191,9 +322,9 @@ def main():
 
             print(text)
 
-            # ==================================================
-            # SEARCH FOR IMPORTANT TERMS
-            # ==================================================
+            # ============================================================
+            # KEYWORD CHECK
+            # ============================================================
 
             print()
             print("=" * 70)
@@ -216,7 +347,8 @@ def main():
                 "pick up",
                 "store",
                 "add to cart",
-                "review cart"
+                "review cart",
+                "checkout"
             ]
 
             for keyword in keywords:
@@ -235,9 +367,9 @@ def main():
                         keyword
                     )
 
-            # ==================================================
-            # FIND WAIRAU ELEMENTS
-            # ==================================================
+            # ============================================================
+            # WAIRAU ELEMENTS
+            # ============================================================
 
             print()
             print("=" * 70)
@@ -276,12 +408,11 @@ def main():
                     )
 
                 except Exception:
-
                     pass
 
-            # ==================================================
-            # FIND BUTTONS
-            # ==================================================
+            # ============================================================
+            # BUTTONS
+            # ============================================================
 
             print()
             print("=" * 70)
@@ -316,12 +447,11 @@ def main():
                         )
 
                 except Exception:
-
                     pass
 
-            # ==================================================
+            # ============================================================
             # SAVE SCREENSHOT
-            # ==================================================
+            # ============================================================
 
             print()
             print("=" * 70)
@@ -329,12 +459,12 @@ def main():
             print("=" * 70)
 
             page.screenshot(
-                path="wairau_stage3.png",
+                path="wairau_stage4.png",
                 full_page=True
             )
 
             print(
-                "Saved: wairau_stage3.png"
+                "Saved: wairau_stage4.png"
             )
 
             print()
@@ -358,16 +488,15 @@ def main():
             try:
 
                 page.screenshot(
-                    path="wairau_stage3_error.png",
+                    path="wairau_stage4_error.png",
                     full_page=True
                 )
 
                 print(
-                    "Saved: wairau_stage3_error.png"
+                    "Saved: wairau_stage4_error.png"
                 )
 
             except Exception:
-
                 pass
 
         finally:
@@ -376,7 +505,7 @@ def main():
 
             print()
             print("=" * 70)
-            print("STAGE 3 FINISHED")
+            print("STAGE 4 FINISHED")
             print("=" * 70)
 
 
