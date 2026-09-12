@@ -2,7 +2,7 @@ name: PS5 Pro Stock Tracker Hourly
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "* * * * *"
 
   workflow_dispatch:
     inputs:
