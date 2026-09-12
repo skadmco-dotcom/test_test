@@ -97,21 +97,82 @@ def main():
             print("CLOSING CART SLIDEOUT")
             print("=" * 70)
 
-            page.keyboard.press("Escape")
+            # Try Escape several times because the cart slideout
+# can occasionally remain open.
 
-            page.wait_for_timeout(1500)
+for attempt in range(3):
 
-            slideout = page.locator(
-                '[data-testid="attach-slideout"]'
-            )
+    page.keyboard.press("Escape")
+    page.wait_for_timeout(1000)
 
-            print(
-                "Cart visible:",
-                (
-                    slideout.count() > 0
-                    and slideout.first.is_visible()
-                )
-            )
+    slideout = page.locator(
+        '[data-testid="attach-slideout"]'
+    )
+
+    visible = (
+        slideout.count() > 0
+        and slideout.first.is_visible()
+    )
+
+    print(
+        f"Cart visible after Escape attempt {attempt + 1}:",
+        visible
+    )
+
+    if not visible:
+        break
+
+# If the slideout is still visible, try clicking its
+# close button directly.
+
+if (
+    slideout.count() > 0
+    and slideout.first.is_visible()
+):
+
+    print("Cart still open - looking for close button.")
+
+    close_buttons = slideout.first.get_by_role(
+        "button",
+        name="Close"
+    )
+
+    print(
+        "Cart close buttons:",
+        close_buttons.count()
+    )
+
+    if close_buttons.count() > 0:
+
+        close_buttons.first.click(
+            force=True,
+            timeout=10000
+        )
+
+        page.wait_for_timeout(1500)
+
+# Final check
+
+slideout = page.locator(
+    '[data-testid="attach-slideout"]'
+)
+
+cart_visible = (
+    slideout.count() > 0
+    and slideout.first.is_visible()
+)
+
+print(
+    "FINAL cart visible:",
+    cart_visible
+)
+
+if cart_visible:
+    raise Exception(
+        "Cart slideout could not be closed."
+    )
+
+print("✓ Cart successfully closed.")
 
             # --------------------------------------------------
             # LOCATION FIELD
