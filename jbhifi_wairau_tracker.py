@@ -13,7 +13,7 @@ def main():
 
     print("=" * 70)
     print("JB HI-FI WAIRAU PS5 PRO TRACKER")
-    print("STAGE 4 - OPEN STORE SEARCH + SEARCH WAIRAU PARK")
+    print("STAGE 5 - USE VISIBLE LOCATION SEARCH")
     print("=" * 70)
 
     with sync_playwright() as p:
@@ -102,218 +102,127 @@ def main():
             page.wait_for_timeout(3000)
 
             # ============================================================
-            # PRINT STORE AVAILABILITY TEXT
+            # FIND VISIBLE LOCATION INPUT
             # ============================================================
 
             print()
             print("=" * 70)
-            print("LOOKING FOR STORE AVAILABILITY")
+            print("FINDING VISIBLE LOCATION SEARCH")
             print("=" * 70)
 
-            body_text = page.locator(
-                "body"
-            ).inner_text()
-
-            print(body_text)
-
-            # ============================================================
-            # CLICK "ENTER POSTCODE OR SUBURB"
-            # ============================================================
-
-            print()
-            print("=" * 70)
-            print("OPENING STORE SEARCH")
-            print("=" * 70)
-
-            postcode_text = page.get_by_text(
-                "Enter postcode or suburb",
-                exact=True
+            location_input = page.locator(
+                'input[name="location-search-pdp"]'
             )
+
+            count = location_input.count()
 
             print(
-                "Enter postcode/suburb elements:",
-                postcode_text.count()
-            )
-
-            if postcode_text.count() > 0:
-
-                try:
-
-                    postcode_text.first.click(
-                        timeout=10000
-                    )
-
-                    print(
-                        "✓ Clicked 'Enter postcode or suburb'."
-                    )
-
-                except Exception as e:
-
-                    print(
-                        "Text click failed:",
-                        repr(e)
-                    )
-
-                    # Try clicking the parent element
-                    try:
-
-                        postcode_text.first.locator(
-                            ".."
-                        ).click(
-                            timeout=10000
-                        )
-
-                        print(
-                            "✓ Clicked parent of "
-                            "'Enter postcode or suburb'."
-                        )
-
-                    except Exception as e2:
-
-                        print(
-                            "Parent click also failed:",
-                            repr(e2)
-                        )
-
-            else:
-
-                print(
-                    "ERROR: 'Enter postcode or suburb' "
-                    "was not found."
-                )
-
-            # Give the UI time to open
-            page.wait_for_timeout(2000)
-
-            # ============================================================
-            # FIND STORE SEARCH INPUT
-            # ============================================================
-
-            print()
-            print("=" * 70)
-            print("FINDING STORE SEARCH INPUT")
-            print("=" * 70)
-
-            search_input = page.locator(
-                'input[name="store-availability-search"]'
-            )
-
-            count = search_input.count()
-
-            print(
-                "Store availability fields found:",
+                "Location search fields found:",
                 count
             )
 
             if count == 0:
                 print(
-                    "ERROR: Store availability search "
-                    "field not found."
+                    "ERROR: location-search-pdp "
+                    "was not found."
                 )
                 return
 
-            print(
-                "✓ Store availability search "
-                "field exists."
-            )
-
-            # Check visibility
             print(
                 "Field visible:",
-                search_input.first.is_visible()
+                location_input.first.is_visible()
             )
 
-            # ============================================================
-            # SEARCH WAIRAU PARK
-            # ============================================================
-
-            print()
-            print("=" * 70)
-            print("SEARCHING FOR WAIRAU PARK")
-            print("=" * 70)
-
-            # Wait until visible
-            try:
-
-                search_input.first.wait_for(
-                    state="visible",
-                    timeout=10000
-                )
-
+            if not location_input.first.is_visible():
                 print(
-                    "✓ Search field is now visible."
+                    "ERROR: location-search-pdp "
+                    "is not visible."
                 )
-
-            except Exception as e:
-
-                print(
-                    "ERROR: Search field did not "
-                    "become visible."
-                )
-
-                print(
-                    repr(e)
-                )
-
-                # Print all inputs for debugging
-                inputs = page.locator("input")
-
-                print()
-                print("CURRENT INPUTS:")
-
-                for i in range(inputs.count()):
-
-                    try:
-
-                        inp = inputs.nth(i)
-
-                        print(
-                            f"INPUT {i}: "
-                            f"name={inp.get_attribute('name')!r} "
-                            f"type={inp.get_attribute('type')!r} "
-                            f"visible={inp.is_visible()} "
-                            f"value={inp.input_value()!r}"
-                        )
-
-                    except Exception:
-                        pass
-
-                page.screenshot(
-                    path="wairau_stage4_error.png",
-                    full_page=True
-                )
-
                 return
 
-            # Fill the field
-            search_input.first.fill(
-                WAIRAU_SEARCH
-            )
-
             print(
-                "Entered:",
-                WAIRAU_SEARCH
+                "✓ Visible location search found."
             )
-
-            page.wait_for_timeout(3000)
-
-            print(
-                "Pressing Enter..."
-            )
-
-            search_input.first.press(
-                "Enter"
-            )
-
-            page.wait_for_timeout(5000)
 
             # ============================================================
-            # PRINT RESULTS
+            # CLICK LOCATION FIELD
             # ============================================================
 
             print()
             print("=" * 70)
-            print("PAGE CONTENT AFTER WAIRAU SEARCH")
+            print("OPENING LOCATION SEARCH")
+            print("=" * 70)
+
+            location_input.first.click(
+                timeout=10000
+            )
+
+            print(
+                "✓ Clicked location search."
+            )
+
+            page.wait_for_timeout(2000)
+
+            # ============================================================
+            # INSPECT AFTER CLICK
+            # ============================================================
+
+            print()
+            print("=" * 70)
+            print("INPUTS AFTER CLICKING LOCATION SEARCH")
+            print("=" * 70)
+
+            inputs = page.locator("input")
+
+            for i in range(inputs.count()):
+
+                try:
+
+                    inp = inputs.nth(i)
+
+                    print(
+                        f"INPUT {i}: "
+                        f"name={inp.get_attribute('name')!r} "
+                        f"type={inp.get_attribute('type')!r} "
+                        f"visible={inp.is_visible()} "
+                        f"value={inp.input_value()!r}"
+                    )
+
+                except Exception:
+                    pass
+
+            # ============================================================
+            # CHECK STORE AVAILABILITY INPUT
+            # ============================================================
+
+            print()
+            print("=" * 70)
+            print("CHECKING STORE AVAILABILITY FIELD")
+            print("=" * 70)
+
+            store_input = page.locator(
+                'input[name="store-availability-search"]'
+            )
+
+            print(
+                "Store availability fields:",
+                store_input.count()
+            )
+
+            if store_input.count() > 0:
+
+                print(
+                    "Store field visible:",
+                    store_input.first.is_visible()
+                )
+
+            # ============================================================
+            # CHECK PAGE TEXT
+            # ============================================================
+
+            print()
+            print("=" * 70)
+            print("PAGE TEXT AFTER LOCATION CLICK")
             print("=" * 70)
 
             text = page.locator(
@@ -323,134 +232,7 @@ def main():
             print(text)
 
             # ============================================================
-            # KEYWORD CHECK
-            # ============================================================
-
-            print()
-            print("=" * 70)
-            print("WAIRAU RESULT CHECK")
-            print("=" * 70)
-
-            lower_text = text.lower()
-
-            keywords = [
-                "wairau",
-                "wairau park",
-                "available",
-                "unavailable",
-                "in stock",
-                "out of stock",
-                "click & collect",
-                "click and collect",
-                "collect",
-                "pickup",
-                "pick up",
-                "store",
-                "add to cart",
-                "review cart",
-                "checkout"
-            ]
-
-            for keyword in keywords:
-
-                if keyword.lower() in lower_text:
-
-                    print(
-                        "FOUND:",
-                        keyword
-                    )
-
-                else:
-
-                    print(
-                        "NOT FOUND:",
-                        keyword
-                    )
-
-            # ============================================================
-            # WAIRAU ELEMENTS
-            # ============================================================
-
-            print()
-            print("=" * 70)
-            print("WAIRAU ELEMENTS")
-            print("=" * 70)
-
-            wairau_elements = page.get_by_text(
-                "Wairau",
-                exact=False
-            )
-
-            wairau_count = (
-                wairau_elements.count()
-            )
-
-            print(
-                "Wairau elements found:",
-                wairau_count
-            )
-
-            for i in range(
-                min(wairau_count, 30)
-            ):
-
-                try:
-
-                    element = (
-                        wairau_elements.nth(i)
-                    )
-
-                    print(
-                        f"[WAIRAU {i}] "
-                        f"{element.inner_text(
-                            timeout=1000
-                        )}"
-                    )
-
-                except Exception:
-                    pass
-
-            # ============================================================
-            # BUTTONS
-            # ============================================================
-
-            print()
-            print("=" * 70)
-            print("BUTTONS AFTER WAIRAU SEARCH")
-            print("=" * 70)
-
-            buttons = page.get_by_role(
-                "button"
-            )
-
-            button_count = buttons.count()
-
-            print(
-                "Number of buttons:",
-                button_count
-            )
-
-            for i in range(button_count):
-
-                try:
-
-                    button = buttons.nth(i)
-
-                    name = button.inner_text(
-                        timeout=1000
-                    ).strip()
-
-                    if name:
-
-                        print(
-                            f"[BUTTON {i}] {name}"
-                        )
-
-                except Exception:
-                    pass
-
-            # ============================================================
-            # SAVE SCREENSHOT
+            # SCREENSHOT
             # ============================================================
 
             print()
@@ -459,18 +241,165 @@ def main():
             print("=" * 70)
 
             page.screenshot(
-                path="wairau_stage4.png",
+                path="wairau_stage5_after_location_click.png",
                 full_page=True
             )
 
             print(
-                "Saved: wairau_stage4.png"
+                "Saved: "
+                "wairau_stage5_after_location_click.png"
             )
 
-            print()
-            print(
-                "Waiting before closing..."
-            )
+            # ============================================================
+            # SEARCH WAIRAU IF STORE FIELD IS NOW VISIBLE
+            # ============================================================
+
+            if (
+                store_input.count() > 0
+                and store_input.first.is_visible()
+            ):
+
+                print()
+                print("=" * 70)
+                print("SEARCHING FOR WAIRAU PARK")
+                print("=" * 70)
+
+                store_input.first.fill(
+                    WAIRAU_SEARCH
+                )
+
+                print(
+                    "Entered:",
+                    WAIRAU_SEARCH
+                )
+
+                page.wait_for_timeout(3000)
+
+                print(
+                    "Pressing Enter..."
+                )
+
+                store_input.first.press(
+                    "Enter"
+                )
+
+                page.wait_for_timeout(5000)
+
+                print()
+                print("=" * 70)
+                print("RESULT AFTER WAIRAU SEARCH")
+                print("=" * 70)
+
+                result_text = page.locator(
+                    "body"
+                ).inner_text()
+
+                print(result_text)
+
+                # --------------------------------------------------------
+                # KEYWORDS
+                # --------------------------------------------------------
+
+                print()
+                print("=" * 70)
+                print("RESULT KEYWORDS")
+                print("=" * 70)
+
+                lower_text = result_text.lower()
+
+                keywords = [
+                    "wairau",
+                    "wairau park",
+                    "available",
+                    "unavailable",
+                    "in stock",
+                    "out of stock",
+                    "click & collect",
+                    "click and collect",
+                    "collect",
+                    "pickup",
+                    "pick up",
+                    "store",
+                    "review cart",
+                    "checkout"
+                ]
+
+                for keyword in keywords:
+
+                    if keyword.lower() in lower_text:
+                        print(
+                            "FOUND:",
+                            keyword
+                        )
+                    else:
+                        print(
+                            "NOT FOUND:",
+                            keyword
+                        )
+
+                # --------------------------------------------------------
+                # WAIRAU ELEMENTS
+                # --------------------------------------------------------
+
+                print()
+                print("=" * 70)
+                print("WAIRAU ELEMENTS")
+                print("=" * 70)
+
+                wairau_elements = page.get_by_text(
+                    "Wairau",
+                    exact=False
+                )
+
+                print(
+                    "Wairau elements:",
+                    wairau_elements.count()
+                )
+
+                for i in range(
+                    min(wairau_elements.count(), 30)
+                ):
+
+                    try:
+
+                        element = (
+                            wairau_elements.nth(i)
+                        )
+
+                        print(
+                            f"[WAIRAU {i}] "
+                            f"{element.inner_text(
+                                timeout=1000
+                            )}"
+                        )
+
+                    except Exception:
+                        pass
+
+                # --------------------------------------------------------
+                # SAVE RESULT SCREENSHOT
+                # --------------------------------------------------------
+
+                page.screenshot(
+                    path="wairau_stage5_result.png",
+                    full_page=True
+                )
+
+                print(
+                    "Saved: wairau_stage5_result.png"
+                )
+
+            else:
+
+                print()
+                print(
+                    "Store availability field is STILL hidden."
+                )
+
+                print(
+                    "We will use the Stage 5 output "
+                    "to determine what opens."
+                )
 
             time.sleep(5)
 
@@ -488,12 +417,12 @@ def main():
             try:
 
                 page.screenshot(
-                    path="wairau_stage4_error.png",
+                    path="wairau_stage5_error.png",
                     full_page=True
                 )
 
                 print(
-                    "Saved: wairau_stage4_error.png"
+                    "Saved: wairau_stage5_error.png"
                 )
 
             except Exception:
@@ -505,7 +434,7 @@ def main():
 
             print()
             print("=" * 70)
-            print("STAGE 4 FINISHED")
+            print("STAGE 5 FINISHED")
             print("=" * 70)
 
 
