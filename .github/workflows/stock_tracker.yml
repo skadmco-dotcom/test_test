@@ -1,4 +1,4 @@
-name: PS5 Pro Stock Tracker Hourly
+name: PS5 Pro Stock Tracker Hourly 
 
 on:
   schedule:
